@@ -1,8 +1,8 @@
 {
   "name": "nova-city-quiz",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "Realtime multiplayer quiz game inspired by the Nova City poster",
+  "description": "Realtime multiplayer speed-quiz inspired by the Nova City poster",
   "main": "server.js",
   "scripts": { "start": "node server.js", "dev": "node server.js" },
   "engines": { "node": ">=18" },
