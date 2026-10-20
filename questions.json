@@ -1,0 +1,122 @@
+[
+  {
+    "category": "LOCATION",
+    "q": "Where is Nova City located on Mars?",
+    "options": [
+      "Inside massive glass domes",
+      "Deep underground in caves",
+      "On floating air platforms",
+      "Inside sealed polar ice caps"
+    ],
+    "correct": 0,
+    "explain": "Nova City is located on Mars and protected by giant glass domes from the harsh environment."
+  },
+  {
+    "category": "ZONES",
+    "q": "How many main zones are in Nova City?",
+    "options": [
+      "3 specialized zones",
+      "5 specialized zones",
+      "7 specialized zones",
+      "9 specialized zones"
+    ],
+    "correct": 1,
+    "explain": "Nova City is organized into 5 main zones: Residential, Entertainment, Tech, Green, and Spaceport."
+  },
+  {
+    "category": "POPULATION",
+    "q": "What is the expected population size?",
+    "options": [
+      "1 to 2 million citizens",
+      "5 to 8 million citizens",
+      "10 to 15 million citizens",
+      "20 to 25 million citizens"
+    ],
+    "correct": 2,
+    "explain": "Nova City is designed to comfortably house about 10 to 15 million scientists and families."
+  },
+  {
+    "category": "ENERGY",
+    "q": "What powers the city clean energy grid?",
+    "options": [
+      "Coal and gas power plants",
+      "Solar panels & batteries",
+      "Diesel generators only",
+      "Geothermal vents only"
+    ],
+    "correct": 1,
+    "explain": "Nova City relies on advanced solar panels and batteries to deliver clean, reliable electricity."
+  },
+  {
+    "category": "TRANSPORT",
+    "q": "How do citizens travel between zones?",
+    "options": [
+      "High-speed magnetic trains",
+      "Traditional steam engines",
+      "Diesel-powered buses",
+      "Manual pedal bicycles"
+    ],
+    "correct": 0,
+    "explain": "High-speed magnetic trains and Hyperloops connect all major city zones in minutes."
+  },
+  {
+    "category": "HOUSING",
+    "q": "What features equip modern smart homes?",
+    "options": [
+      "Robot helpers and smart TVs",
+      "Manual wood-burning stoves",
+      "Gas lamps and iron keys",
+      "Paper record filing systems"
+    ],
+    "correct": 0,
+    "explain": "Smart houses are equipped with automated lighting, smart TVs, and helpful cleaning robots."
+  },
+  {
+    "category": "ARCHITECTURE",
+    "q": "Why does Nova City build skyscrapers?",
+    "options": [
+      "To save natural land space",
+      "To block out sunlight",
+      "To prevent flying taxis",
+      "To hide city power grids"
+    ],
+    "correct": 0,
+    "explain": "Tall skyscrapers save valuable land space while keeping the Martian nature outside safe."
+  },
+  {
+    "category": "AI SYSTEM",
+    "q": "What does the Central AI Brain manage?",
+    "options": [
+      "The city energy grid",
+      "The daily lunch menus",
+      "The clothing fashion style",
+      "The planetary music playlist"
+    ],
+    "correct": 0,
+    "explain": "The Central AI Brain optimizes power distribution across nuclear, solar, and wind grids."
+  },
+  {
+    "category": "SAFETY",
+    "q": "How is public safety monitored 24/7?",
+    "options": [
+      "By AI sensors and emergency bots",
+      "By physical paper logbooks",
+      "By sound horns on towers",
+      "By manual watch guards"
+    ],
+    "correct": 0,
+    "explain": "Smart sensors instantly detect fires, accidents, or crimes and alert emergency services."
+  },
+  {
+    "category": "EARTH IMPACT",
+    "q": "How does Nova City help planet Earth?",
+    "options": [
+      "It reduces crowds and resources",
+      "It takes away all Earth water",
+      "It stops Earth satellite signals",
+      "It replaces Earth atmosphere"
+    ],
+    "correct": 0,
+    "explain": "Moving millions of people to Mars reduces crowds and gives Earth time to recover."
+  }
+]
