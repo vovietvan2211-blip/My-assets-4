@@ -116,8 +116,8 @@
     $("startGame").classList.toggle("hidden", role !== "host");
     $("lobbyHint").textContent =
       role === "host"
-        ? "Start when everyone has joined. You launch each question and reveal the results."
-        : "Waiting for the host to start the mission…";
+        ? "Start when everyone has joined. You start each question and show the results."
+        : "Waiting for the host to start the game…";
     $("backHome").textContent = role === "host" ? "← Close room" : "← Leave room";
   }
 
@@ -163,10 +163,10 @@
   function renderBets() {
     const bets = scoring.bets;
     const hints = {
-      x1: "SAFE",
-      x2: `${MINUS}${bets.x2.penalty} IF WRONG`,
-      x3: `${MINUS}${bets.x3.penalty} IF WRONG`,
-      allin: `×${bets.allin.mult} · ZERO IF WRONG`,
+      x1: "safe",
+      x2: `${MINUS}${bets.x2.penalty} if wrong`,
+      x3: `${MINUS}${bets.x3.penalty} if wrong`,
+      allin: `×${bets.allin.mult} or lose all`,
     };
     $("betOptions").innerHTML = Object.keys(bets)
       .map(
@@ -311,10 +311,8 @@
     if (role !== "player" || selectedChoice !== null || !question || !scoring) return;
     const rem = remainingNow();
     if (rem <= 0) return;
-    const pts = speedPoints(rem, timerDuration);
-    const rule = scoring.bets[selectedBet];
     selectedChoice = choice;
-    applyLockedUi(choice, `Locked in at ${(((timerDuration - rem) / 1000)).toFixed(1)}s · about ${fmt(pts)} speed pts × ${rule.mult} if correct.`);
+    applyLockedUi(choice, `Locked in at ${(((timerDuration - rem) / 1000)).toFixed(1)}s. Hold tight, results are coming.`);
 
     const res = await emitAck("submitAnswer", { choice, bet: selectedBet });
     if (!res || !res.ok) {
@@ -338,6 +336,63 @@
   /* ---------------------------------------------------------------- */
   /* Results screen                                                   */
   /* ---------------------------------------------------------------- */
+  /* Encouragement: every answer gets a different line (shuffled deck, no repeats until it runs out) */
+  const CHEERS = {
+    correct: [
+      "Nice! You really know this poster.",
+      "Boom, that's a point machine.",
+      "Easy for you, huh? Keep it up.",
+      "Right again. The others better watch out.",
+      "That was quick thinking.",
+      "Nailed it. Don't slow down now.",
+      "Yes! Mars is lucky to have you.",
+      "Smart move. You're climbing the board.",
+      "Spot on. Keep that streak going.",
+      "Great answer. You were paying attention.",
+      "Perfect. Do it one more time.",
+      "Look at you go. Keep it rolling.",
+    ],
+    wrong: [
+      "Close one. The next question is yours.",
+      "It's okay, everybody misses some.",
+      "Shake it off and go again.",
+      "You can still catch up, there's time.",
+      "One miss won't ruin your game.",
+      "Now you know it for next time.",
+      "Breathe. Read the next one slowly.",
+      "You're still in this. Keep pushing!",
+      "Mistakes happen. Come back stronger.",
+      "Head up, the points are still out there.",
+    ],
+    none: [
+      "Too slow this time. Try to answer a bit faster.",
+      "Time ran out. Don't overthink the next one.",
+      "No answer, no points. You've got the next one.",
+      "Next round, tap an answer even if you're unsure.",
+      "The clock won this time. Beat it next round.",
+    ],
+  };
+  const CHEER_LABEL = { correct: "NICE ONE", wrong: "KEEP PUSHING", none: "STAY SHARP" };
+  const cheerDeck = { correct: [], wrong: [], none: [] };
+  const cheerLast = { correct: "", wrong: "", none: "" };
+  let wrongInRow = 0;
+
+  function nextCheer(kind) {
+    if (kind === "wrong") wrongInRow++;
+    else if (kind === "correct") wrongInRow = 0;
+    if (!cheerDeck[kind].length) {
+      const d = CHEERS[kind].slice();
+      for (let i = d.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [d[i], d[j]] = [d[j], d[i]];
+      }
+      if (d.length > 1 && d[d.length - 1] === cheerLast[kind]) d.unshift(d.pop());
+      cheerDeck[kind] = d;
+    }
+    cheerLast[kind] = cheerDeck[kind].pop();
+    return cheerLast[kind];
+  }
+
   function renderMyResult(me) {
     const el = $("myResult");
     // No record at all = the player joined after this question ended, so there is nothing to show.
@@ -352,26 +407,35 @@
       el.classList.add("none");
       $("myHead").textContent = "NO ANSWER";
       $("myDelta").textContent = "+0";
-      $("myDetail").textContent = "You ran out of time. Lock in faster next round!";
+      $("myDetail").textContent = "Time ran out before you picked an answer.";
     } else if (last.status === "correct") {
       el.classList.add("correct");
       $("myHead").textContent = "CORRECT";
       $("myDelta").textContent = `+${fmt(last.gained)}`;
-      $("myDetail").textContent = `Answered in ${(last.answerTimeMs / 1000).toFixed(1)}s · ${fmt(last.speedPoints)} speed pts × ${betLabel(
+      $("myDetail").textContent = `Answered in ${(last.answerTimeMs / 1000).toFixed(1)}s · ${fmt(last.speedPoints)} speed pts ${betLabel(
         last.bet
-      )}${last.streakBonus ? ` · +${fmt(last.streakBonus)} streak bonus (${last.streak} in a row!)` : last.streak > 1 ? ` · ${last.streak} in a row!` : ""}`;
+      )}${last.streakBonus ? ` · +${fmt(last.streakBonus)} streak bonus (${last.streak} in a row)` : last.streak > 1 ? ` · ${last.streak} in a row` : ""}`;
     } else {
       el.classList.add("wrong");
-      $("myHead").textContent = "INCORRECT";
+      $("myHead").textContent = "WRONG";
       $("myDelta").textContent = last.gained === 0 ? "+0" : `${MINUS}${fmt(-last.gained)}`;
       $("myDetail").textContent =
         last.bet === "allin"
-          ? "All-in missed. Your score was reset to zero."
+          ? "All-in missed. Your score went back to zero."
           : last.gained === 0
-          ? "No penalty on the safe ×1 bet."
-          : `Penalty for the ${betLabel(last.bet)} bet.`;
+          ? "No penalty on a ×1 buff."
+          : `${betLabel(last.bet)} buff penalty.`;
     }
     $("myStanding").textContent = standing;
+    const kind = last.status === "correct" ? "correct" : last.status === "wrong" ? "wrong" : "none";
+    let cheer = nextCheer(kind);
+    if (kind === "wrong" && wrongInRow >= 2) cheer += " Tip: a ×1 keeps you safe for a round.";
+    $("myCheerLabel").textContent = CHEER_LABEL[kind];
+    $("myCheerText").textContent = cheer;
+    const box = $("myCheer");
+    box.classList.remove("pop");
+    void box.offsetWidth;
+    box.classList.add("pop");
   }
 
   function showResults(result, me) {
@@ -380,7 +444,7 @@
     const isLast = result.index + 1 >= result.total;
     const mineChoice = me && me.last && me.last.status !== "none" ? me.last.choice : null;
 
-    $("resultTitle").innerHTML = `QUESTION <span>${String(result.index + 1).padStart(2, "0")} COMPLETE</span>`;
+    $("resultTitle").innerHTML = `QUESTION <span>${String(result.index + 1).padStart(2, "0")} DONE</span>`;
     $("resultQuestion").textContent = result.question || "";
     $("correctAnswer").textContent = result.correctText || LETTERS[result.correct];
     $("explanation").textContent = result.explain || "";
@@ -397,40 +461,19 @@
         </div>`
       )
       .join("");
-    $("answerCounts").textContent = `${result.correctCount} correct · ${Math.max(0, result.totalPlayers - answered)} did not answer`;
+    $("answerCounts").textContent = `${result.correctCount} right · ${Math.max(0, result.totalPlayers - answered)} did not answer`;
 
     renderMyResult(me);
     renderLeaderboard(result.leaderboard || [], "resultsLeaderboard");
-    if (role === "player" && me && me.last) {
-      const good = [
-        "Clean answer! Keep that momentum going.",
-        "Nice one — you clearly know your stuff.",
-        "That's the kind of answer that moves you up.",
-        "Great read! Stay sharp for the next question.",
-        "Brilliant — you're building a strong run."
-      ];
-      const tryAgain = [
-        "No stress. One question doesn't decide the whole game.",
-        "Shake it off — the next question is a fresh start.",
-        "Not this time, but you're still in the race.",
-        "Take a breath, read carefully, and go again.",
-        "Every miss teaches you something. Keep going."
-      ];
-      if (me.last.status === "correct") { correctStreak++; wrongStreak = 0; }
-      else if (me.last.status === "wrong" || me.last.status === "none") { wrongStreak++; correctStreak = 0; }
-      const tips = document.querySelector("#results .score-tip");
-      if (tips) {
-        const msg = me.last.status === "correct" ? good[(result.index + correctStreak - 1) % good.length] : tryAgain[(result.index + wrongStreak - 1) % tryAgain.length];
-        tips.innerHTML = `<span>✦</span><p><b>${me.last.status === "correct" ? "Nice work!" : "You’ve got this"}</b>${esc(msg)}${wrongStreak >= 2 ? " Comeback time: try the ×2 buff next round if you're confident." : ""}</p>`;
-      }
-    }
+    const staticTip = document.querySelector("#results .score-tip");
+    if (staticTip) staticTip.classList.toggle("hidden", role === "player");
 
     $("hostNextControls").classList.toggle("hidden", role !== "host");
-    $("nextQuestion").textContent = isLast ? "VIEW FINAL STANDINGS →" : "NEXT QUESTION →";
+    $("nextQuestion").textContent = isLast ? "SHOW FINAL RESULTS →" : "NEXT QUESTION →";
     $("playerWait").classList.toggle("hidden", role === "host");
     $("playerWait").textContent = isLast
-      ? "That was the last question. Waiting for the host to reveal the final standings…"
-      : "Waiting for the host to launch the next question…";
+      ? "That was the last question. Waiting for the host to show the final results…"
+      : "Waiting for the host to start the next question…";
 
     showScreen("results");
 
@@ -440,28 +483,294 @@
     }
   }
 
-  function showFinal(players) {
-    stopTimer();
-    renderLeaderboard(players, "finalLeaderboard");
-    const podium = $("podium");
-    const top = ranked(players).slice(0, 3);
-    const places = [2, 1, 3];
-    podium.innerHTML = top.length ? places.map((rank) => {
-      const p = top.find((x) => x.rank === rank);
-      if (!p) return `<div class="podium-place empty"></div>`;
-      return `<div class="podium-place place-${rank}"><div class="podium-crown">${rank === 1 ? "👑" : rank === 2 ? "🥈" : "🥉"}</div><b class="podium-name">${esc(p.name)}</b><span class="podium-score">${fmt(p.score)} pts</span><div class="podium-step"><strong>${rank}</strong></div></div>`;
-    }).join("") : "";
+  /* ---------------------------------------------------------------- */
+  /* Fireworks + confetti (canvas)                                    */
+  /* ---------------------------------------------------------------- */
+  const fx = (() => {
+    const cv = $("fxCanvas");
+    const ctx = cv.getContext("2d");
+    const HUES = [45, 190, 340, 130, 270, 20];
+    let W = 0, H = 0, raf = 0, last = 0, running = false, auto = null, stopTimer_ = null;
+    let rockets = [], sparks = [], bits = [], lastPop = 0;
+
+    function size() {
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      W = window.innerWidth;
+      H = window.innerHeight;
+      cv.width = W * dpr;
+      cv.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function rocket() {
+      rockets.push({
+        x: W * (0.12 + Math.random() * 0.76),
+        y: H + 10,
+        vx: Math.random() * 2 - 1,
+        vy: -(H / 52 + Math.random() * 3),
+        ty: H * (0.12 + Math.random() * 0.33),
+      });
+    }
+
+    function burst(x, y) {
+      const hue = HUES[(Math.random() * HUES.length) | 0];
+      const n = 70 + ((Math.random() * 40) | 0);
+      const ring = Math.random() < 0.35;
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2 + Math.random() * 0.1;
+        const sp = ring ? 4.4 : 1.5 + Math.random() * 5;
+        sparks.push({ x, y, px: x, py: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0, max: 55 + Math.random() * 35, hue: hue + (Math.random() * 30 - 15) });
+      }
+      const t = performance.now();
+      if (t - lastPop > 170) { lastPop = t; sfx("pop"); }
+    }
+
+    function confetti(n) {
+      for (let i = 0; i < n; i++) {
+        bits.push({ x: Math.random() * W, y: -20 - Math.random() * H * 0.5, vx: Math.random() * 2 - 1, vy: 2 + Math.random() * 3, rot: Math.random() * 6, vr: Math.random() * 0.3 - 0.15, w: 6 + Math.random() * 6, h: 4 + Math.random() * 5, hue: Math.random() * 360, sway: Math.random() * 6 });
+      }
+    }
+
+    function frame(t) {
+      const k = Math.min(3, (t - last) / 16.67 || 1);
+      last = t;
+      ctx.clearRect(0, 0, W, H);
+
+      rockets = rockets.filter((r) => {
+        r.x += r.vx * k;
+        r.y += r.vy * k;
+        r.vy *= 0.985;
+        ctx.fillStyle = "#ffe9b0";
+        ctx.fillRect(r.x - 1.5, r.y, 3, 10);
+        if (r.y <= r.ty || r.vy > -2) { burst(r.x, r.y); return false; }
+        return true;
+      });
+
+      ctx.globalCompositeOperation = "lighter";
+      sparks = sparks.filter((p) => {
+        p.px = p.x; p.py = p.y;
+        p.x += p.vx * k;
+        p.y += p.vy * k;
+        p.vx *= 0.985;
+        p.vy = p.vy * 0.985 + 0.045 * k;
+        p.life += k;
+        const f = 1 - p.life / p.max;
+        if (f <= 0) return false;
+        ctx.strokeStyle = `hsla(${p.hue},100%,${55 + 20 * f}%,${f})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(p.px, p.py);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+        return true;
+      });
+      ctx.globalCompositeOperation = "source-over";
+
+      bits = bits.filter((c) => {
+        c.sway += 0.05 * k;
+        c.x += (c.vx + Math.sin(c.sway) * 0.9) * k;
+        c.y += c.vy * k;
+        c.rot += c.vr * k;
+        if (c.y > H + 30) return false;
+        ctx.save();
+        ctx.translate(c.x, c.y);
+        ctx.rotate(c.rot);
+        ctx.fillStyle = `hsl(${c.hue},90%,60%)`;
+        ctx.fillRect(-c.w / 2, -c.h / 2, c.w, c.h);
+        ctx.restore();
+        return true;
+      });
+
+      if (running || rockets.length || sparks.length || bits.length) {
+        raf = requestAnimationFrame(frame);
+      } else {
+        raf = 0;
+        cv.style.display = "none";
+      }
+    }
+
+    function start(ms) {
+      stop();
+      size();
+      cv.style.display = "block";
+      running = true;
+      last = performance.now();
+      for (let i = 0; i < 5; i++) setTimeout(rocket, i * 260);
+      confetti(150);
+      setTimeout(() => confetti(100), 2200);
+      auto = setInterval(rocket, 420);
+      stopTimer_ = setTimeout(() => { running = false; clearInterval(auto); }, Math.max(1500, ms));
+      raf = requestAnimationFrame(frame);
+    }
+
+    function stop() {
+      running = false;
+      clearInterval(auto);
+      clearTimeout(stopTimer_);
+      cancelAnimationFrame(raf);
+      raf = 0;
+      rockets = []; sparks = []; bits = [];
+      cv.style.display = "none";
+    }
+
+    window.addEventListener("resize", () => { if (raf) size(); });
+    return { start, stop };
+  })();
+
+  /* ---------------------------------------------------------------- */
+  /* Finale: the spotlight visits 3rd, then 2nd, then 1st place       */
+  /* ---------------------------------------------------------------- */
+  // All times in ms. Make the numbers bigger to give each spotlight more time.
+  const FINAL_TIMING = {
+    search: 1800,       // light moves to the spot and "looks" for 2nd / 3rd place
+    hold: 4200,         // how long a 2nd / 3rd place winner stays in the light
+    winnerSearch: 3400, // drumroll before the winner
+    winnerHold: 8000,   // fireworks time for the winner
+  };
+  const COL_OF = { 1: 1, 2: 0, 3: 2 };      // podium column of each place (2nd | 1st | 3rd)
+  const SPOT_X = [19.33, 50, 80.67];        // spotlight position (% of stage width) per column
+  let finalTimers = [];
+  let finalPlayers = [];
+
+  function later(ms, fn) {
+    finalTimers.push(setTimeout(fn, ms));
+  }
+
+  function clearFinal() {
+    finalTimers.forEach(clearTimeout);
+    finalTimers = [];
+    fx.stop();
+  }
+
+  function say(text) {
+    const el = $("finalCaption");
+    el.classList.remove("swap");
+    void el.offsetWidth;
+    el.textContent = text;
+    el.classList.add("swap");
+  }
+
+  function countUp(el, to, ms) {
+    const t0 = performance.now();
+    (function step(now) {
+      const f = Math.min(1, (now - t0) / ms);
+      el.textContent = fmt(Math.round(to * (1 - Math.pow(1 - f, 3))));
+      if (f < 1) requestAnimationFrame(step);
+    })(t0);
+  }
+
+  function revealPod(place, instant) {
+    const pod = $("podium").querySelector(`.place-${place}`);
+    if (!pod) return;
+    pod.classList.remove("past");
+    pod.classList.add("lit");
+    const sc = pod.querySelector(".pod-score");
+    const to = Number(sc.dataset.score) || 0;
+    if (instant) sc.textContent = fmt(to);
+    else countUp(sc, to, 1400);
+  }
+
+  function drumroll(ms) {
+    let t = 0;
+    let gap = 260;
+    while (t < ms - 150) {
+      later(t, () => sfx("tick"));
+      t += gap;
+      gap = Math.max(55, gap * 0.9);
+    }
+  }
+
+  function finishFinal() {
+    $("stage").classList.add("lights-on");
+    $("spot").classList.remove("searching");
+    $("restWrap").classList.remove("hidden");
+    $("finalActions").classList.remove("hidden");
+    $("skipFinal").parentElement.classList.add("hidden");
     const you = $("finalYou");
     if (role === "player") {
-      const mine = ranked(players).find((p) => p.name === myName);
+      const mine = ranked(finalPlayers).find((p) => p.name === myName);
       if (mine) {
         you.textContent = `You finished #${mine.rank} with ${fmt(mine.score)} points.`;
         you.classList.remove("hidden");
       }
-    } else {
-      you.classList.add("hidden");
     }
+  }
+
+  function showFinal(players) {
+    stopTimer();
+    clearFinal();
+    finalPlayers = players || [];
+    const rows = ranked(finalPlayers);
+    const top = rows.slice(0, 3);
+    const stage = $("stage");
+    renderLeaderboard(finalPlayers, "finalLeaderboard");
+
+    $("podium").innerHTML = [2, 1, 3]
+      .map((place) => {
+        const p = top[place - 1];
+        if (!p) return '<div class="pod pod-empty"></div>';
+        return `<div class="pod place-${place}"><div class="pod-info">${
+          place === 1 ? '<div class="pod-crown">👑</div>' : ""
+        }<div class="pod-avatar">${esc((p.name || "?").slice(0, 1).toUpperCase())}</div><b class="pod-name">${esc(
+          p.name
+        )}</b><span class="pod-score" data-score="${p.score}">0</span></div><div class="pod-step"><strong>${place}</strong></div></div>`;
+      })
+      .join("");
+
+    stage.className = "stage";
+    $("spot").classList.remove("searching");
+    stage.style.setProperty("--spot-x", "50%");
+    $("restWrap").classList.add("hidden");
+    $("finalActions").classList.add("hidden");
+    $("finalYou").classList.add("hidden");
+    $("skipFinal").parentElement.classList.remove("hidden");
     showScreen("final");
+
+    const order = [3, 2, 1].filter((pl) => top[pl - 1]);
+    if (!order.length) {
+      say("Nobody played this game.");
+      finishFinal();
+      return;
+    }
+    if (reduceMotion) {
+      order.forEach((pl) => revealPod(pl, true));
+      say(`Congratulations, ${top[0].name}!`);
+      finishFinal();
+      return;
+    }
+
+    stage.classList.add("dark");
+    say("Get ready…");
+    const T = FINAL_TIMING;
+    let t = 1000;
+    order.forEach((place) => {
+      const win = place === 1;
+      const p = top[place - 1];
+      const search = win ? T.winnerSearch : T.search;
+      const hold = win ? T.winnerHold : T.hold;
+      later(t, () => {
+        say(win ? "And the winner is…" : place === 3 ? "In third place…" : "In second place…");
+        $("podium").querySelectorAll(".pod.lit").forEach((el) => el.classList.add("past"));
+        stage.style.setProperty("--spot-x", `${SPOT_X[COL_OF[place]]}%`);
+        $("spot").classList.add("searching");
+        sfx("sweep");
+        if (win) drumroll(search);
+      });
+      later(t + search, () => {
+        $("spot").classList.remove("searching");
+        revealPod(place, false);
+        if (win) {
+          say(`Congratulations, ${p.name}!`);
+          sfx("fanfare");
+          fx.start(hold - 500);
+        } else {
+          say(`${place === 3 ? "3rd" : "2nd"} place: ${p.name}`);
+          sfx("reveal");
+        }
+      });
+      t += search + hold;
+    });
+    later(t, finishFinal);
   }
 
   /* ---------------------------------------------------------------- */
@@ -479,12 +788,12 @@
   }
   document.addEventListener("pointerdown", unlockAudio, { once: false });
 
-  function tone(freq, start, dur, gain) {
+  function tone(freq, start, dur, gain, type) {
     if (!audioCtx) return;
     const o = audioCtx.createOscillator();
     const g = audioCtx.createGain();
     const t = audioCtx.currentTime + start;
-    o.type = "sine";
+    o.type = type || "sine";
     o.frequency.value = freq;
     g.gain.setValueAtTime(gain || 0.05, t);
     g.gain.exponentialRampToValueAtTime(0.001, t + dur);
@@ -494,10 +803,53 @@
     o.stop(t + dur);
   }
 
+  let noiseBuf = null;
+  function noisePop() {
+    if (!audioCtx) return;
+    if (!noiseBuf) {
+      noiseBuf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * 0.3), audioCtx.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    const t = audioCtx.currentTime;
+    const src = audioCtx.createBufferSource();
+    const f = audioCtx.createBiquadFilter();
+    const g = audioCtx.createGain();
+    src.buffer = noiseBuf;
+    f.type = "lowpass";
+    f.frequency.value = 900;
+    g.gain.setValueAtTime(0.05, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+    src.connect(f);
+    f.connect(g);
+    g.connect(audioCtx.destination);
+    src.start(t);
+    src.stop(t + 0.3);
+  }
+
   function sfx(kind) {
     try {
       if (kind === "correct") { tone(660, 0, 0.12); tone(880, 0.12, 0.2); }
       if (kind === "wrong") { tone(247, 0, 0.18); tone(196, 0.16, 0.28); }
+      if (kind === "tick") tone(1500, 0, 0.04, 0.025, "square");
+      if (kind === "reveal") { tone(523, 0, 0.4, 0.05, "triangle"); tone(659, 0.08, 0.4, 0.05, "triangle"); tone(784, 0.16, 0.7, 0.05, "triangle"); }
+      if (kind === "fanfare") [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.14, i === 3 ? 1.1 : 0.3, 0.06, "sawtooth"));
+      if (kind === "pop") noisePop();
+      if (kind === "sweep" && audioCtx) {
+        const t = audioCtx.currentTime;
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = "sine";
+        o.frequency.setValueAtTime(220, t);
+        o.frequency.exponentialRampToValueAtTime(880, t + 0.9);
+        g.gain.setValueAtTime(0.001, t);
+        g.gain.linearRampToValueAtTime(0.04, t + 0.2);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 1);
+        o.connect(g);
+        g.connect(audioCtx.destination);
+        o.start(t);
+        o.stop(t + 1.05);
+      }
     } catch (e) { /* ignore */ }
   }
 
@@ -583,7 +935,8 @@
     myName = "";
     question = null;
     lastResult = null;
-    correctStreak = 0; wrongStreak = 0;
+    correctStreak = 0; wrongStreak = 0; wrongInRow = 0;
+    clearFinal();
     showScreen("home");
   }
 
@@ -596,7 +949,7 @@
 
   function setConn(online) {
     $("connStatus").classList.toggle("offline", !online);
-    $("connText").textContent = online ? "MARS NETWORK ONLINE" : "RECONNECTING…";
+    $("connText").textContent = online ? "ONLINE" : "RECONNECTING…";
   }
 
   /* ---------------------------------------------------------------- */
@@ -643,7 +996,7 @@
     btn.disabled = false;
     if (!res || !res.ok) return setError("joinError", (res && res.error) || "Unable to join.");
     applySnapshot(res.snapshot);
-    toast(`Welcome to Nova City, ${res.snapshot.myName}!`);
+    toast(`You're in, ${res.snapshot.myName}!`);
   }
   $("joinBtn").onclick = join;
   $("playerName").addEventListener("keydown", (e) => { if (e.key === "Enter") join(); });
@@ -678,6 +1031,16 @@
   };
 
   $("backHome").onclick = leaveRoom;
+  $("skipFinal").onclick = () => {
+    clearFinal();
+    $("stage").classList.add("dark");
+    [1, 2, 3].forEach((pl) => revealPod(pl, true));
+    const first = ranked(finalPlayers)[0];
+    say(first ? `Congratulations, ${first.name}!` : "Final results");
+    finishFinal();
+  };
+  $("replayFinal").onclick = () => showFinal(finalPlayers);
+
   $("newGame").onclick = async () => {
     await emitAck("leaveRoom", {});
     clearSession();
@@ -776,23 +1139,3 @@
 })();
 
 
-function triggerSingleFireworks() {
-  const container = document.querySelector(".fireworks");
-  if (!container) return;
-  container.innerHTML = "";
-  for (let i = 0; i < 40; i++) {
-    const spark = document.createElement("div");
-    spark.className = "firework-spark";
-    const angle = Math.random() * Math.PI * 2;
-    const distance = 100 + Math.random() * 250;
-    spark.style.setProperty("--x", `${Math.cos(angle) * distance}px`);
-    spark.style.setProperty("--y", `${Math.sin(angle) * distance}px`);
-    spark.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 65%)`;
-    spark.style.left = "50%";
-    spark.style.top = "40%";
-    container.appendChild(spark);
-  }
-  setTimeout(() => {
-    container.innerHTML = "";
-  }, 2200);
-}

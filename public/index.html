@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#080b14">
-<title>Nova City Quiz — Mars Mission</title>
+<title>Nova City Quiz</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/style.css">
@@ -13,8 +13,8 @@
 <div class="stars"></div><div class="orb orb-one"></div><div class="orb orb-two"></div>
 
 <header class="topbar">
-  <a class="brand" href="/"><span class="brand-icon">✦</span> NOVA<span class="brand-light">CITY</span><span class="tiny-tag">QUIZ PROTOCOL</span></a>
-  <div id="connStatus" class="status"><span class="live-dot"></span> <span id="connText">MARS NETWORK ONLINE</span></div>
+  <a class="brand" href="/"><span class="brand-icon">✦</span> NOVA<span class="brand-light">CITY</span></a>
+  <div id="connStatus" class="status"><span class="live-dot"></span> <span id="connText">ONLINE</span></div>
 </header>
 
 <main id="app">
@@ -22,35 +22,30 @@
 <!-- HOME -->
 <section id="home" class="screen active">
   <div class="hero">
-    <div class="eyebrow"><span>MISSION 01</span><i></i> THE FUTURE IS YOURS</div>
-    <h1>WELCOME TO<br><span>NOVA CITY</span></h1>
-    <p class="lead">A 20-question challenge about humanity's future on Mars. The faster you answer, the more you score. Think fast. Bet smart. Build your legacy.</p>
+    <div class="eyebrow"><span>NOVA CITY</span><i></i> POSTER QUIZ</div>
+    <h1>NOVA CITY<br><span>QUIZ</span></h1>
+    <p class="lead">10 questions from our Nova City poster. Answer fast to get more points, and pick a buff if you feel brave.</p>
     <div class="hero-actions">
       <button id="showCreate" class="btn primary">HOST A GAME <span>↗</span></button>
       <button id="showJoin" class="btn secondary">JOIN A ROOM</button>
     </div>
     <div class="stats-strip">
-      <div><b>20</b><span>QUESTIONS</span></div>
+      <div><b>10</b><span>QUESTIONS</span></div>
       <div><b>1000</b><span>MAX POINTS</span></div>
       <div><b>×5</b><span>ALL-IN</span></div>
     </div>
   </div>
-  <div class="planet-card">
-    <div class="planet-label">DESTINATION / MARS</div><div class="planet"></div>
-    <div class="planet-caption"><b>THE RED PLANET</b><span>Humanity's next chapter</span></div>
-    <div class="orbit orbit-a"></div><div class="orbit orbit-b"></div>
-    <span class="planet-coordinate">18° 42' N / 77° 03' E</span>
-  </div>
+  <div class="poster-card"><img src="/poster.jpg" alt="Nova City poster: the mega-city on Mars" width="900" height="1352"></div>
 
   <div id="createPanel" class="form-panel hidden">
-    <div class="panel-heading"><span class="step">01</span><div><h2>Launch a room</h2><p>You control the mission from the host screen.</p></div></div>
-    <label>Your host name<input id="hostName" maxlength="24" placeholder="Mission Commander" value="Host"></label>
+    <div class="panel-heading"><span class="step">01</span><div><h2>Create a room</h2><p>You run the game from this screen.</p></div></div>
+    <label>Your name<input id="hostName" maxlength="24" placeholder="Your name" value="Host"></label>
     <label>Time per question
       <select id="duration">
-        <option value="10">10 seconds — rapid fire</option>
-        <option value="15" selected>15 seconds — standard</option>
-        <option value="20">20 seconds — tactical</option>
-        <option value="30">30 seconds — relaxed</option>
+        <option value="10">10 seconds, fast</option>
+        <option value="15" selected>15 seconds, normal</option>
+        <option value="20">20 seconds</option>
+        <option value="30">30 seconds, slow</option>
       </select>
     </label>
     <button id="createBtn" class="btn primary full">CREATE ROOM</button>
@@ -58,23 +53,23 @@
   </div>
 
   <div id="joinPanel" class="form-panel hidden">
-    <div class="panel-heading"><span class="step">02</span><div><h2>Join the mission</h2><p>Ask the host for the five-character room code.</p></div></div>
-    <label>Room code<input id="roomCode" maxlength="5" placeholder="E.G. MARS7" autocomplete="off" autocapitalize="characters"></label>
-    <label>Your nickname<input id="playerName" maxlength="24" placeholder="Choose a display name" autocomplete="off"></label>
-    <button id="joinBtn" class="btn primary full">ENTER NOVA CITY</button>
+    <div class="panel-heading"><span class="step">02</span><div><h2>Join a room</h2><p>Ask the host for the 5-letter code.</p></div></div>
+    <label>Room code<input id="roomCode" maxlength="5" placeholder="e.g. MARS7" autocomplete="off" autocapitalize="characters"></label>
+    <label>Your nickname<input id="playerName" maxlength="24" placeholder="Pick a nickname" autocomplete="off"></label>
+    <button id="joinBtn" class="btn primary full">JOIN</button>
     <p id="joinError" class="error" role="alert"></p>
   </div>
 
-  <div class="footer-note">INSPIRED BY YOUR NOVA CITY POSTER <span>•</span> EXPLORE. ANSWER. ASCEND.</div>
+  <div class="footer-note">MADE FROM OUR NOVA CITY POSTER</div>
 </section>
 
 <!-- LOBBY -->
 <section id="lobby" class="screen">
   <div class="section-top">
     <div>
-      <div class="eyebrow">PRE-LAUNCH CHECK</div>
-      <h1>MISSION <span>LOBBY</span></h1>
-      <p class="muted">Share the room code so everyone can join.</p>
+      <div class="eyebrow">WAITING ROOM</div>
+      <h1>GAME <span>LOBBY</span></h1>
+      <p class="muted">Share the code or the QR so everyone can join.</p>
     </div>
     <div class="room-code-card"><span>ROOM CODE</span><b id="lobbyCode">-----</b><button id="copyCode" class="copy-btn">COPY</button></div>
   </div>
@@ -87,18 +82,19 @@
       <p id="qrHint" class="hint qr-hint">Point a phone camera at the code. Same Wi-Fi needed when playing locally.</p>
     </div>
     <div class="panel">
-      <div class="panel-title"><span>CREW MANIFEST</span><span id="playerCount" class="count-pill">0 PLAYERS</span></div>
+      <div class="panel-title"><span>PLAYERS</span><span id="playerCount" class="count-pill">0 PLAYERS</span></div>
       <div id="lobbyPlayers" class="players-grid"></div>
-      <div id="emptyPlayers" class="empty-state">Waiting for your crew to arrive…</div>
+      <div id="emptyPlayers" class="empty-state">Nobody here yet…</div>
     </div>
     </div>
     <div class="panel mission-rules">
-      <div class="panel-title">MISSION BRIEFING</div>
-      <div class="rule"><span class="rule-icon">01</span><div><b>Speed pays</b><p>A correct answer is worth up to 1,000 points. The longer you wait, the fewer you get, down to 100 at the buzzer.</p></div></div>
-      <div class="rule"><span class="rule-icon">02</span><div><b>Choose your risk</b><p>×2 and ×3 multiply your speed points, but a wrong answer costs 250 and 500 points. Skip the choice to keep a safe ×1.</p></div></div>
-      <div class="rule"><span class="rule-icon">03</span><div><b>All-in means all-in</b><p>A correct All-in pays ×5. A wrong one resets your score to zero.</p></div></div>
-      <button id="startGame" class="btn primary full hidden">START MISSION <span>→</span></button>
-      <p id="lobbyHint" class="hint">The host starts each question and reveals the results.</p>
+      <div class="panel-title">HOW IT WORKS</div>
+      <div class="rule"><span class="rule-icon">01</span><div><b>Faster = more points</b><p>A right answer is worth up to 1,000 points. The longer you wait, the less you get, down to 100.</p></div></div>
+      <div class="rule"><span class="rule-icon">02</span><div><b>Pick a buff</b><p>×2 and ×3 multiply your points, but a wrong answer costs 250 or 500. Pick nothing and it's a safe ×1.</p></div></div>
+      <div class="rule"><span class="rule-icon">03</span><div><b>All-in</b><p>Right answer = ×5. Wrong answer = your score goes back to zero.</p></div></div>
+      <div class="rule"><span class="rule-icon">04</span><div><b>Keep a streak</b><p>Each extra right answer in a row adds +100 bonus points (max +500). One wrong answer ends the streak.</p></div></div>
+      <button id="startGame" class="btn primary full hidden">START GAME <span>→</span></button>
+      <p id="lobbyHint" class="hint">The host starts each question and shows the results.</p>
     </div>
   </div>
   <button id="backHome" class="text-btn">← Leave room</button>
@@ -107,14 +103,14 @@
 <!-- QUESTION -->
 <section id="game" class="screen">
   <div class="game-top">
-    <div class="mini-brand">✦ NOVA CITY</div>
-    <div id="questionPill" class="question-pill">QUESTION 01 / 20</div>
+    <div class="mini-brand">NOVA CITY</div>
+    <div id="questionPill" class="question-pill">QUESTION 01 / 10</div>
     <div class="crew-mini"><span class="live-dot"></span><span id="liveCrew">0 CREW</span></div>
   </div>
   <div class="progress-track"><div id="progressFill"></div></div>
   <div class="question-layout">
     <div class="question-main">
-      <div class="eyebrow"><span id="category">CITY SYSTEMS</span><i></i> KNOWLEDGE CHECK</div>
+      <div class="eyebrow"><span id="category">CITY SYSTEMS</span></div>
       <div id="timerRing" class="timer-ring"><svg viewBox="0 0 100 100"><circle class="timer-bg" cx="50" cy="50" r="44"></circle><circle id="timerArc" class="timer-arc" cx="50" cy="50" r="44"></circle></svg><div><b id="timerNum">15</b><span>SECONDS</span></div></div>
       <h2 id="questionText">Loading question…</h2>
 
@@ -127,22 +123,22 @@
       </div>
 
       <div id="betBox" class="bet-box">
-        <div class="bet-heading"><div><b>RISK CONTROL</b><p>Pick a multiplier, then lock your answer. The clock keeps running.</p></div><span class="optional">OPTIONAL</span></div>
+        <div class="bet-heading"><div><b>PICK A BUFF</b><p>Tap one, then choose your answer. The timer keeps running.</p></div><span class="optional">OPTIONAL</span></div>
         <div id="betOptions" class="bet-options"></div>
-        <p class="bet-note">No selection = ×1 with no penalty.</p>
+        <p class="bet-note">No buff = ×1, nothing to lose.</p>
       </div>
 
       <div id="answers" class="answers-grid"></div>
 
 
-      <div id="answerLocked" class="answer-locked hidden"><span>✓</span><div><b>ANSWER LOCKED</b><p id="lockedInfo">Hold tight. The results are incoming.</p></div></div>
+      <div id="answerLocked" class="answer-locked hidden"><span>✓</span><div><b>ANSWER LOCKED</b><p id="lockedInfo">Hold tight, results are coming.</p></div></div>
 
-      <div id="hostControls" class="host-controls hidden"><p id="hostProgress">Waiting for answers…</p><button id="endQuestion" class="btn secondary">END TIMER &amp; REVEAL</button></div>
+      <div id="hostControls" class="host-controls hidden"><p id="hostProgress">Waiting for answers…</p><button id="endQuestion" class="btn secondary">END TIMER &amp; SHOW ANSWER</button></div>
     </div>
     <aside class="score-panel">
       <div class="panel-title">LIVE LEADERBOARD <span>↗</span></div>
       <div id="gameLeaderboard" class="leaderboard"></div>
-      <div class="score-tip"><span>✦</span><p><b>Strategy tip</b>Speed is worth more than you think. A confident ×2 in the first few seconds can beat a slow ×3.</p></div>
+      <div class="score-tip"><span>✦</span><p><b>Tip</b>A few right answers in a row and the streak bonus adds up fast.</p></div>
     </aside>
   </div>
 </section>
@@ -150,8 +146,8 @@
 <!-- RESULTS -->
 <section id="results" class="screen">
   <div class="results-header">
-    <div class="eyebrow">TRANSMISSION RECEIVED</div>
-    <h1 id="resultTitle">ANSWER <span>REVEALED</span></h1>
+    <div class="eyebrow">RESULT</div>
+    <h1 id="resultTitle">ANSWER <span>TIME</span></h1>
     <p id="resultQuestion" class="muted"></p>
   </div>
   <div id="myResult" class="my-result hidden">
@@ -159,19 +155,20 @@
     <div class="mr-delta" id="myDelta">+0</div>
     <div class="mr-detail" id="myDetail"></div>
     <div class="mr-standing" id="myStanding"></div>
+    <div class="mr-cheer" id="myCheer"><small id="myCheerLabel"></small><p id="myCheerText"></p></div>
   </div>
   <div class="results-layout">
     <div class="panel answer-summary">
       <div class="correct-banner"><span class="checkmark">✓</span><div><small>CORRECT ANSWER</small><b id="correctAnswer">—</b></div></div>
       <p id="explanation" class="explanation"></p>
-      <div class="panel-title distribution-title">ANSWER DISTRIBUTION <span id="responseTotal">0 RESPONSES</span></div>
+      <div class="panel-title distribution-title">WHO ANSWERED WHAT <span id="responseTotal">0 RESPONSES</span></div>
       <div id="distribution" class="distribution"></div>
       <div id="answerCounts" class="answer-counts"></div>
     </div>
     <div class="panel final-score-panel">
-      <div class="panel-title">LEADERBOARD UPDATE</div>
+      <div class="panel-title">LEADERBOARD</div>
       <div id="resultsLeaderboard" class="leaderboard"></div>
-      <div class="score-tip"><span>✦</span><p><b>Keep pushing</b>Every question is another chance to change the rankings.</p></div>
+      <div class="score-tip"><span>✦</span><p><b>Keep going</b>Every question can change the ranking.</p></div>
     </div>
   </div>
   <div id="hostNextControls" class="host-next-controls hidden"><button id="nextQuestion" class="btn primary">NEXT QUESTION →</button></div>
@@ -180,20 +177,26 @@
 
 <!-- FINAL -->
 <section id="final" class="screen">
-  <div class="fireworks" aria-hidden="true"></div>
   <div class="final-hero">
-    <div class="trophy">✦</div>
-    <div class="eyebrow">MISSION ACCOMPLISHED</div>
-    <h1>NOVA CITY<br><span>LEGENDS</span></h1>
-    <p class="muted">The final standings are in. Every decision shaped the mission.</p>
+    <div class="eyebrow">FINAL RESULTS</div>
+    <h1 id="finalTitle">THE <span>PODIUM</span></h1>
+    <p id="finalCaption" class="final-caption"></p>
     <p id="finalYou" class="final-you hidden"></p>
-    <div id="podium" class="podium" aria-label="Top three players"></div>
   </div>
-  <div class="panel final-leaderboard"><div class="panel-title">FINAL STANDINGS</div><div id="finalLeaderboard" class="leaderboard"></div></div>
-  <button id="newGame" class="btn primary">RETURN TO BASE</button>
+  <div id="stage" class="stage" aria-label="Top three players">
+    <div id="spot" class="spot"><div class="spot-beam"></div><div class="spot-pool"></div><div class="spot-lamp"></div></div>
+    <div id="podium" class="podium"></div>
+  </div>
+  <div class="final-skip"><button id="skipFinal" class="text-btn">Skip ›</button></div>
+  <div id="restWrap" class="panel final-leaderboard hidden"><div class="panel-title">FINAL STANDINGS</div><div id="finalLeaderboard" class="leaderboard"></div></div>
+  <div id="finalActions" class="final-actions hidden">
+    <button id="replayFinal" class="btn secondary">REPLAY</button>
+    <button id="newGame" class="btn primary">BACK TO START</button>
+  </div>
 </section>
 
 </main>
+<canvas id="fxCanvas" aria-hidden="true"></canvas>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script src="/socket.io/socket.io.js"></script>
 <script src="/qr.js"></script>
