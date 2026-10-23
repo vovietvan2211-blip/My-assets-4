@@ -66,6 +66,10 @@
   let audioCtx = null;
   let correctStreak = 0;
   let wrongStreak = 0;
+  let emojiList = [];
+  let myStreak = 0;
+  let giftBusy = false;
+  let reactCool = false;
 
   const reduceMotion = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -79,6 +83,7 @@
   function showScreen(name) {
     SCREENS.forEach((s) => $(s).classList.toggle("active", s === name));
     window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+    syncDock();
   }
 
   function toast(message) {
@@ -119,6 +124,121 @@
         ? "Start when everyone has joined. You start each question and show the results."
         : "Waiting for the host to start the game…";
     $("backHome").textContent = role === "host" ? "← Close room" : "← Leave room";
+    // Only the host sees the room code and the QR. Players already joined, they don't need them.
+    $("qrPanel").classList.toggle("hidden", role !== "host");
+    $("codeCard").classList.toggle("hidden", role !== "host");
+    $("lobbyIntro").textContent =
+      role === "host" ? "Share the code or the QR so everyone can join." : "You're in! Waiting for the host to start the game.";
+    syncDock();
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Streak, emoji and gift helpers                                   */
+  /* ---------------------------------------------------------------- */
+  function updateStreak(players) {
+    if (role !== "player") return;
+    const me = (players || []).find((p) => p.name === myName);
+    if (!me) return;
+    const v = me.streak || 0;
+    myStreak = v;
+    $("streakNum").textContent = v;
+    const bar = $("streakBar");
+    bar.classList.toggle("on", v >= 1);
+    bar.classList.toggle("hot", v >= 2);
+    $("streakNext").textContent = v >= 1 ? `next right answer: +${Math.min(500, v * 100)} bonus` : "get one right to start a streak";
+  }
+
+  function renderDock() {
+    $("reactTray").innerHTML = emojiList.map((e) => `<button type="button" data-emoji="${e}">${e}</button>`).join("");
+  }
+
+  function syncDock() {
+    const home = $("home") && $("home").classList.contains("active");
+    const show = role === "player" && !!roomCode && !home && emojiList.length > 0;
+    $("reactDock").classList.toggle("hidden", !show);
+    if (!show) $("reactTray").classList.add("hidden");
+  }
+
+  function spawnReaction(name, emoji) {
+    const layer = $("reactLayer");
+    while (layer.childElementCount > 40) layer.firstChild.remove();
+    const el = document.createElement("div");
+    el.className = "react-bubble";
+    el.style.left = `${8 + Math.random() * 78}%`;
+    el.style.setProperty("--dx", `${Math.round(Math.random() * 80 - 40)}px`);
+    const e = document.createElement("span");
+    e.className = "rb-emoji";
+    e.textContent = emoji;
+    const n = document.createElement("span");
+    n.className = "rb-name";
+    n.textContent = name;
+    el.append(e, n);
+    layer.appendChild(el);
+    el.addEventListener("animationend", () => el.remove());
+    if (reduceMotion) setTimeout(() => el.remove(), 1800);
+  }
+
+  function addFeed(entry) {
+    const list = $("giftFeedList");
+    const li = document.createElement("li");
+    const b = document.createElement("b");
+    b.textContent = entry.name;
+    li.append(b, document.createTextNode(` ${entry.text}`));
+    list.prepend(li);
+    while (list.children.length > 8) list.lastChild.remove();
+    $("giftFeed").classList.remove("hidden");
+  }
+
+  function showGiftResult(g, instant) {
+    $("giftBtn").classList.add("hidden");
+    const el = $("giftResult");
+    el.className = `gift-result ${g.kind}`;
+    const icon = g.kind === "steal" ? "🕵️" : g.kind === "mult" ? "💎" : "🎁";
+    const victims = (g.victims || []).length
+      ? `<ul class="gr-victims">${g.victims.map((v) => `<li><span>${esc(v.name)}</span><em>${MINUS}${fmt(v.amount)}</em></li>`).join("")}</ul>`
+      : "";
+    el.innerHTML = `<div class="gr-ico">${icon}</div><div><small>YOU GOT</small><b>${esc(g.title)}</b><p>${esc(
+      g.detail
+    )}</p><strong class="gr-delta">+${fmt(g.delta)}</strong>${victims}</div>`;
+    if (!instant) {
+      sfx("reveal");
+      if (!reduceMotion) fx.confettiBurst(g.kind === "bonus" ? 45 : 120);
+    }
+  }
+
+  function setupGift(me, giftStats) {
+    const box = $("giftBox");
+    giftBusy = false;
+    $("giftFeedList").innerHTML = "";
+    $("giftFeed").classList.add("hidden");
+    $("giftResult").classList.add("hidden");
+    $("giftBtn").classList.remove("hidden", "opening");
+    if (role === "player" && me && me.gift) {
+      box.classList.remove("hidden");
+      if (me.gift.claimed && me.gift.result) showGiftResult(me.gift.result, true);
+    } else {
+      box.classList.add("hidden");
+    }
+    const prog = $("giftProgress");
+    prog.classList.toggle("hidden", role !== "host" || !giftStats);
+    if (role === "host" && giftStats) prog.textContent = `🎁 ${giftStats.claimed} / ${giftStats.total} gifts opened`;
+  }
+
+  async function openGift() {
+    if (giftBusy) return;
+    giftBusy = true;
+    $("giftBtn").classList.add("opening");
+    const res = await emitAck("claimGift", {});
+    if (!res || !res.ok) {
+      giftBusy = false;
+      $("giftBtn").classList.remove("opening");
+      toast((res && res.error) || "Could not open the gift.");
+      return;
+    }
+    setTimeout(() => {
+      showGiftResult(res.gift, false);
+      $("myStanding").textContent = `Rank #${res.rank} · ${fmt(res.score)} pts total`;
+    }, reduceMotion ? 0 : 650);
   }
 
   /* ---------------------------------------------------------------- */
@@ -152,6 +272,8 @@
           return `<div class="leader-row${mine ? " me" : ""}${p.connected === false ? " offline" : ""}">
             <span class="rank ${medal}">${String(p.rank).padStart(2, "0")}</span>
             <span class="leader-name" title="${esc(p.name)}">${esc(p.name)}${mine ? '<em class="you-tag">YOU</em>' : ""}${
+            p.streak > 0 ? `<em class="streak-tag" title="${p.streak} in a row">🔥${p.streak}</em>` : ""
+          }${
             showTick && p.answered === true ? " · ✓" : ""
           }${p.connected === false ? ' <em class="off-tag">OFFLINE</em>' : ""}</span>
             <span class="leader-score">${fmt(p.score)}<small>PTS</small></span>
@@ -264,6 +386,8 @@
     $("endQuestion").disabled = false;
     $("liveCrew").textContent = `${(q.players || []).length} CREW`;
     renderLeaderboard(q.players || [], "gameLeaderboard");
+    $("streakBar").classList.toggle("hidden", !isPlayer);
+    updateStreak(q.players || []);
     $("timerRing").classList.remove("urgent");
 
     // Rejoined after answering: restore the locked state.
@@ -438,7 +562,7 @@
     box.classList.add("pop");
   }
 
-  function showResults(result, me) {
+  function showResults(result, me, giftStats) {
     stopTimer();
     lastResult = result;
     const isLast = result.index + 1 >= result.total;
@@ -465,6 +589,8 @@
 
     renderMyResult(me);
     renderLeaderboard(result.leaderboard || [], "resultsLeaderboard");
+    updateStreak(result.leaderboard || []);
+    setupGift(me, giftStats);
     const staticTip = document.querySelector("#results .score-tip");
     if (staticTip) staticTip.classList.toggle("hidden", role === "player");
 
@@ -603,6 +729,16 @@
       raf = requestAnimationFrame(frame);
     }
 
+    function confettiBurst(n) {
+      size();
+      cv.style.display = "block";
+      confetti(n);
+      if (!raf) {
+        last = performance.now();
+        raf = requestAnimationFrame(frame);
+      }
+    }
+
     function stop() {
       running = false;
       clearInterval(auto);
@@ -614,7 +750,7 @@
     }
 
     window.addEventListener("resize", () => { if (raf) size(); });
-    return { start, stop };
+    return { start, stop, confettiBurst };
   })();
 
   /* ---------------------------------------------------------------- */
@@ -919,9 +1055,14 @@
     $("lobbyCode").textContent = s.code;
     renderQr();
     renderPlayers(s.players || []);
+    emojiList = s.emojis || emojiList;
+    renderDock();
 
     if (s.state === "question" && s.question) showQuestion(s.question, s.me);
-    else if (s.state === "results" && s.result) showResults(s.result, s.me);
+    else if (s.state === "results" && s.result) {
+      showResults(s.result, s.me, s.giftStats);
+      (s.giftLog || []).slice().reverse().forEach(addFeed);
+    }
     else if (s.state === "final") showFinal(s.final || []);
     else showScreen("lobby");
 
@@ -1031,6 +1172,17 @@
   };
 
   $("backHome").onclick = leaveRoom;
+  $("giftBtn").onclick = openGift;
+  $("reactToggle").onclick = () => $("reactTray").classList.toggle("hidden");
+  $("reactTray").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-emoji]");
+    if (!b || reactCool) return;
+    reactCool = true;
+    setTimeout(() => (reactCool = false), 600);
+    emitAck("react", { emoji: b.dataset.emoji }).then((r) => {
+      if (r && !r.ok && r.error) toast(r.error);
+    });
+  });
   $("skipFinal").onclick = () => {
     clearFinal();
     $("stage").classList.add("dark");
@@ -1084,6 +1236,8 @@
     if (data.code !== roomCode) return;
     const players = data.players || [];
     renderPlayers(players);
+    updateStreak(players);
+    if ($("results").classList.contains("active")) renderLeaderboard(players, "resultsLeaderboard");
     if ($("game").classList.contains("active")) {
       renderLeaderboard(players, "gameLeaderboard");
       $("liveCrew").textContent = `${players.length} CREW`;
@@ -1102,8 +1256,29 @@
     if (role === "host") $("hostProgress").textContent = `${d.answered} / ${d.total} answers locked`;
   });
 
-  socket.on("results", ({ result, me }) => {
-    if (roomCode) showResults(result, me);
+  socket.on("results", ({ result, me, giftStats }) => {
+    if (roomCode) showResults(result, me, giftStats);
+  });
+
+  socket.on("giftNews", (entry) => {
+    if (roomCode && $("results").classList.contains("active")) addFeed(entry);
+  });
+
+  socket.on("giftProgress", (st) => {
+    if (role === "host" && st) {
+      $("giftProgress").classList.remove("hidden");
+      $("giftProgress").textContent = `🎁 ${st.claimed} / ${st.total} gifts opened`;
+    }
+  });
+
+  socket.on("stolen", ({ by, amount }) => {
+    if (!roomCode) return;
+    toast(`${by} stole ${fmt(amount)} points from you!`);
+    sfx("wrong");
+  });
+
+  socket.on("reaction", ({ name, emoji }) => {
+    if (roomCode) spawnReaction(name, emoji);
   });
 
   socket.on("gameOver", ({ leaderboard }) => {

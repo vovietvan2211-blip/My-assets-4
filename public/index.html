@@ -24,18 +24,18 @@
   <div class="hero">
     <div class="eyebrow"><span>NOVA CITY</span><i></i> POSTER QUIZ</div>
     <h1>NOVA CITY<br><span>QUIZ</span></h1>
-    <p class="lead">10 questions from our Nova City poster. Answer fast to get more points, and pick a buff if you feel brave.</p>
+    <p class="lead">15 questions from our Nova City poster. Answer fast to get more points, and pick a buff if you feel brave.</p>
     <div class="hero-actions">
       <button id="showCreate" class="btn primary">HOST A GAME <span>↗</span></button>
       <button id="showJoin" class="btn secondary">JOIN A ROOM</button>
     </div>
     <div class="stats-strip">
-      <div><b>10</b><span>QUESTIONS</span></div>
+      <div><b>15</b><span>QUESTIONS</span></div>
       <div><b>1000</b><span>MAX POINTS</span></div>
       <div><b>×5</b><span>ALL-IN</span></div>
     </div>
   </div>
-  <div class="poster-card"><img src="/poster.jpg" alt="Nova City poster: the mega-city on Mars" width="841" height="1264"></div>
+  <div class="poster-card"><img src="/poster.jpg" alt="Nova City poster: the mega-city on Mars" width="900" height="1352"></div>
 
   <div id="createPanel" class="form-panel hidden">
     <div class="panel-heading"><span class="step">01</span><div><h2>Create a room</h2><p>You run the game from this screen.</p></div></div>
@@ -44,7 +44,7 @@
       <select id="duration">
         <option value="10">10 seconds, fast</option>
         <option value="15" selected>15 seconds, normal</option>
-        <option value="20">20 seconds, chill</option>
+        <option value="20">20 seconds</option>
         <option value="30">30 seconds, slow</option>
       </select>
     </label>
@@ -69,9 +69,9 @@
     <div>
       <div class="eyebrow">WAITING ROOM</div>
       <h1>GAME <span>LOBBY</span></h1>
-      <p class="muted">Share the code or the QR so everyone can join.</p>
+      <p id="lobbyIntro" class="muted">Share the code or the QR so everyone can join.</p>
     </div>
-    <div class="room-code-card"><span>ROOM CODE</span><b id="lobbyCode">-----</b><button id="copyCode" class="copy-btn">COPY</button></div>
+    <div id="codeCard" class="room-code-card"><span>ROOM CODE</span><b id="lobbyCode">-----</b><button id="copyCode" class="copy-btn">COPY</button></div>
   </div>
   <div class="lobby-grid">
     <div class="lobby-left">
@@ -87,12 +87,14 @@
       <div id="emptyPlayers" class="empty-state">Nobody here yet…</div>
     </div>
     </div>
-    <div class="panel mission-rules">
-      <div class="panel-title">HOW IT WORKS</div>
+    <div class="panel mission-rules how-panel">
+      <div class="how-title"><span class="how-badge">?</span><h2>HOW IT WORKS</h2></div>
       <div class="rule"><span class="rule-icon">01</span><div><b>Faster = more points</b><p>A right answer is worth up to 1,000 points. The longer you wait, the less you get, down to 100.</p></div></div>
       <div class="rule"><span class="rule-icon">02</span><div><b>Pick a buff</b><p>×2 and ×3 multiply your points, but a wrong answer costs 250 or 500. Pick nothing and it's a safe ×1.</p></div></div>
       <div class="rule"><span class="rule-icon">03</span><div><b>All-in</b><p>Right answer = ×5. Wrong answer = your score goes back to zero.</p></div></div>
-      <div class="rule"><span class="rule-icon">04</span><div><b>Keep a streak</b><p>Each extra right answer in a row adds +100 bonus points (max +500). One wrong answer ends the streak.</p></div></div>
+      <div class="rule"><span class="rule-icon">04</span><div><b>Keep a streak</b><p>Each extra right answer in a row adds +100 bonus points (max +500). One wrong answer ends the streak. Your streak is always shown on your screen.</p></div></div>
+      <div class="rule"><span class="rule-icon">05</span><div><b>Open your gift</b><p>After every question you get a mystery box. Tap it: get ×2 or ×3 of your score, bonus points, or steal 30% from up to 5 players.</p></div></div>
+      <div class="rule"><span class="rule-icon">06</span><div><b>Throw emojis</b><p>Tap the 😊 button to send a reaction. Everyone sees who threw it.</p></div></div>
       <button id="startGame" class="btn primary full hidden">START GAME <span>→</span></button>
       <p id="lobbyHint" class="hint">The host starts each question and shows the results.</p>
     </div>
@@ -104,7 +106,7 @@
 <section id="game" class="screen">
   <div class="game-top">
     <div class="mini-brand">NOVA CITY</div>
-    <div id="questionPill" class="question-pill">QUESTION 01 / 10</div>
+    <div id="questionPill" class="question-pill">QUESTION 01 / 15</div>
     <div class="crew-mini"><span class="live-dot"></span><span id="liveCrew">0 CREW</span></div>
   </div>
   <div class="progress-track"><div id="progressFill"></div></div>
@@ -121,6 +123,8 @@
         </div>
         <div class="lv-bar"><i id="liveBar"></i></div>
       </div>
+
+      <div id="streakBar" class="streak-bar hidden"><span class="streak-fire">🔥</span><div><b id="streakNum">0</b><small>IN A ROW</small></div><span id="streakNext" class="streak-next"></span></div>
 
       <div id="betBox" class="bet-box">
         <div class="bet-heading"><div><b>PICK A BUFF</b><p>Tap one, then choose your answer. The timer keeps running.</p></div><span class="optional">OPTIONAL</span></div>
@@ -157,6 +161,10 @@
     <div class="mr-standing" id="myStanding"></div>
     <div class="mr-cheer" id="myCheer"><small id="myCheerLabel"></small><p id="myCheerText"></p></div>
   </div>
+  <div id="giftBox" class="gift-box hidden">
+    <button id="giftBtn" type="button" class="gift-btn"><span class="gift-ico">🎁</span><span class="gift-text"><b>YOUR GIFT BOX</b><small>Tap to open</small></span></button>
+    <div id="giftResult" class="gift-result hidden"></div>
+  </div>
   <div class="results-layout">
     <div class="panel answer-summary">
       <div class="correct-banner"><span class="checkmark">✓</span><div><small>CORRECT ANSWER</small><b id="correctAnswer">—</b></div></div>
@@ -168,9 +176,11 @@
     <div class="panel final-score-panel">
       <div class="panel-title">LEADERBOARD</div>
       <div id="resultsLeaderboard" class="leaderboard"></div>
+      <div id="giftFeed" class="gift-feed hidden"><div class="panel-title">GIFT LOG</div><ul id="giftFeedList"></ul></div>
       <div class="score-tip"><span>✦</span><p><b>Keep going</b>Every question can change the ranking.</p></div>
     </div>
   </div>
+  <p id="giftProgress" class="gift-progress hidden"></p>
   <div id="hostNextControls" class="host-next-controls hidden"><button id="nextQuestion" class="btn primary">NEXT QUESTION →</button></div>
   <div id="playerWait" class="player-wait hidden">Waiting for the host to launch the next question…</div>
 </section>
@@ -196,6 +206,8 @@
 </section>
 
 </main>
+<div id="reactLayer" class="react-layer" aria-hidden="true"></div>
+<div id="reactDock" class="react-dock hidden"><div id="reactTray" class="react-tray hidden"></div><button id="reactToggle" class="react-toggle" type="button" aria-label="Send an emoji">😊</button></div>
 <canvas id="fxCanvas" aria-hidden="true"></canvas>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script src="/socket.io/socket.io.js"></script>
