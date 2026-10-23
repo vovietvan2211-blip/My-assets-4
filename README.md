@@ -1,6 +1,6 @@
-# Nova City Quiz — Multiplayer Web App (v4)
+# Nova City Quiz — Multiplayer Web App (v5)
 
-A 10-question real-time quiz based on the **Nova City poster** (Mars mega-city, zones, city systems, travel, housing and AI). Built with Node.js, Express, Socket.IO, HTML, CSS and browser JavaScript.
+A 15-question real-time quiz based on the **Nova City poster** (Mars mega-city, zones, city systems, travel, housing and AI). Built with Node.js, Express, Socket.IO, HTML, CSS and browser JavaScript.
 
 ## How the game works
 - The host creates a room and shares the 5-character code. Players join from their own phones or computers.
@@ -23,7 +23,7 @@ A 10-question real-time quiz based on the **Nova City poster** (Mars mega-city, 
 - All numbers live in the `SCORING` object at the top of `server.js`. If you change them, also update the text in the lobby briefing in `public/index.html`.
 
 ## Questions
-The 10 questions are in `questions.json`, written from the poster text. Put the correct answer **first** in each `options` list (`"correct": 0`); the server shuffles the answer order every time a question is asked, so the correct answer lands on A/B/C/D at random. Add or edit questions freely, but every question needs exactly 4 options.
+The 15 questions are in `questions.json`, written from the poster text. Put the correct answer **first** in each `options` list (`"correct": 0`); the server shuffles the answer order every time a question is asked, so the correct answer lands on A/B/C/D at random. Add or edit questions freely, but every question needs exactly 4 options.
 
 ## Run locally
 1. Install Node.js 18 or newer: https://nodejs.org/
@@ -56,7 +56,7 @@ Players can tap an answer or press **A–D** (or **1–4**) on a keyboard.
 - `public/index.html`, `public/style.css`, `public/app.js` — interface and Socket.IO client.
 
 ## Version 4 changes
-- **10 core questions**, rewritten in plain wording. In every question the four answers have the same number of words and almost the same length, so nobody can guess by length.
+- **15 core questions**, rewritten in plain wording. In every question the four answers have the same number of words and almost the same length, so nobody can guess by length.
 - **Spotlight finale**: the light moves to 3rd place, then 2nd, then 1st. The winner gets a drumroll, fireworks and confetti. After that the lights come on and the full standings appear. A "Skip" link and a "Replay" button are on the screen.
   - To give each spotlight more (or less) time, change `FINAL_TIMING` in `public/app.js` (values in milliseconds).
 - **Praise and encouragement**: every answer shows a different line (12 for right, 10 for wrong, 5 for no answer). Lines come from a shuffled deck, so nothing repeats until the deck is used up. Edit them in the `CHEERS` object in `public/app.js`.
@@ -64,3 +64,11 @@ Players can tap an answer or press **A–D** (or **1–4**) on a keyboard.
 - The "points if you answer now" preview stays hidden. Scoring (faster = more points) is unchanged.
 - Home page shows the poster instead of the Mars drawing (`public/poster.jpg`). The floating star on the last screen is gone.
 - Menus and labels use plain wording instead of sci-fi phrases.
+
+## Version 5 changes
+- **15 questions** (5 new: Technology Zone, Entertainment Zone, Green Zone, dome air, food). All answers in a question have the same word count and almost the same length.
+- **Gift box**: after every question each player gets one mystery box and taps it to open. Possible gifts: **+300 / +600 points**, **×2 or ×3 of your current score** (at least +300), or **steal 30% from up to 5 random players**. Victims get a notice, the host sees how many boxes were opened, and a gift log shows what everyone got. An unopened box expires when the next question starts. Odds and amounts are in the `GIFT` object at the top of `server.js`.
+- **Streak counter**: players see their current streak (and the next bonus) above the buffs, and a 🔥 number sits next to every name on the leaderboards.
+- **Emoji reactions**: players tap the 😊 button to throw an emoji. It floats up on every screen (host included) with the sender's name. One emoji per 0.5 s per player. The list is `EMOJIS` in `server.js`.
+- **Room code and QR are host-only.** Players never see them.
+- The "HOW IT WORKS" panel in the lobby is bigger and highlighted, and now explains streaks, gifts and emojis.

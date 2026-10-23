@@ -37,6 +37,26 @@ const SCORING = {
   },
 };
 
+// Round gift: every player gets one mystery box after each question.
+//   bonus : flat points
+//   mult  : multiplies the player's CURRENT score (at least minGain points)
+//   steal : takes stealPct of the score of up to stealTargets random other players
+const GIFT = {
+  minGain: 300,
+  stealPct: 0.3,
+  stealTargets: 5,
+  table: [
+    { kind: "bonus", amount: 300, weight: 24 },
+    { kind: "bonus", amount: 600, weight: 14 },
+    { kind: "mult", mult: 2, weight: 16 },
+    { kind: "mult", mult: 3, weight: 6 },
+    { kind: "steal", weight: 30 },
+  ],
+};
+
+// Emoji reactions players can throw on everyone's screen.
+const EMOJIS = ["👏", "😂", "🔥", "😮", "❤️", "🎉", "😭", "💪"];
+
 QUESTIONS.forEach((q, i) => {
   const ok =
     q.q &&
@@ -150,7 +170,7 @@ function on(socket, event, handler) {
 /* ------------------------------------------------------------------ */
 function publicPlayers(room) {
   return [...room.players.values()]
-    .map((p) => ({ name: p.name, score: p.score, connected: p.connected, answered: !!p.answer }))
+    .map((p) => ({ name: p.name, score: p.score, connected: p.connected, answered: !!p.answer, streak: p.streak || 0 }))
     .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
 }
 
@@ -199,6 +219,9 @@ function snapshot(room, role, clientId) {
     total: QUESTIONS.length,
     questionIndex: room.questionIndex,
     scoring: SCORING,
+    emojis: EMOJIS,
+    giftLog: room.state === "results" ? room.giftLog || [] : [],
+    giftStats: room.state === "results" ? giftStats(room) : null,
     players: publicPlayers(room),
     question: room.state === "question" ? questionPayload(room) : null,
     result: room.state === "results" ? room.result : null,
@@ -211,8 +234,105 @@ function snapshot(room, role, clientId) {
           last: p.last,
           rank: rankOf(room, p),
           score: p.score,
+          streak: p.streak || 0,
+          gift: p.gift ? { claimed: p.gift.claimed, result: publicGift(p.gift.result) } : null,
         }
       : null,
+  };
+}
+
+function publicGift(g) {
+  if (!g) return null;
+  return {
+    kind: g.kind,
+    title: g.title,
+    detail: g.detail,
+    delta: g.delta,
+    victims: (g.victims || []).map((v) => ({ name: v.name, amount: v.amount })),
+  };
+}
+
+function giftStats(room) {
+  let total = 0;
+  let claimed = 0;
+  for (const p of room.players.values()) {
+    if (!p.gift) continue;
+    total++;
+    if (p.gift.claimed) claimed++;
+  }
+  return { claimed, total };
+}
+
+function fmtNum(n) {
+  return Number(n).toLocaleString("en-US");
+}
+
+function rollGift(room, player) {
+  const total = GIFT.table.reduce((a, g) => a + g.weight, 0);
+  let r = Math.random() * total;
+  let pick = GIFT.table[0];
+  for (const g of GIFT.table) {
+    if ((r -= g.weight) < 0) {
+      pick = g;
+      break;
+    }
+  }
+
+  if (pick.kind === "mult") {
+    const gain = Math.max(GIFT.minGain, Math.round((player.score * (pick.mult - 1)) / 10) * 10);
+    player.score += gain;
+    return {
+      kind: "mult",
+      title: `×${pick.mult} YOUR SCORE`,
+      detail: pick.mult === 2 ? "Your score just doubled!" : "Your score just tripled!",
+      delta: gain,
+      victims: [],
+      news: `opened ×${pick.mult} and gained +${fmtNum(gain)}`,
+    };
+  }
+
+  if (pick.kind === "steal") {
+    const others = shuffle([...room.players.values()].filter((v) => v !== player && v.score > 0)).slice(0, GIFT.stealTargets);
+    const victims = [];
+    let gain = 0;
+    for (const v of others) {
+      const amount = Math.floor((v.score * GIFT.stealPct) / 10) * 10;
+      if (amount <= 0) continue;
+      v.score -= amount;
+      gain += amount;
+      victims.push({ name: v.name, amount, socketId: v.connected ? v.socketId : null });
+    }
+    if (victims.length) {
+      player.score += gain;
+      return {
+        kind: "steal",
+        title: "STEAL 30%",
+        detail: `You took 30% of the points from ${victims.length} player${victims.length > 1 ? "s" : ""}!`,
+        delta: gain,
+        victims,
+        news: `stole ${fmtNum(gain)} points from ${victims.length} player${victims.length > 1 ? "s" : ""}`,
+      };
+    }
+    // nobody had points to steal
+    player.score += GIFT.table[0].amount;
+    return {
+      kind: "bonus",
+      title: `+${GIFT.table[0].amount} POINTS`,
+      detail: "Nobody had points to steal, so here's a bonus instead.",
+      delta: GIFT.table[0].amount,
+      victims: [],
+      news: `opened a bonus box: +${GIFT.table[0].amount}`,
+    };
+  }
+
+  player.score += pick.amount;
+  return {
+    kind: "bonus",
+    title: `+${fmtNum(pick.amount)} POINTS`,
+    detail: "A little extra for the next round.",
+    delta: pick.amount,
+    victims: [],
+    news: `opened a bonus box: +${fmtNum(pick.amount)}`,
   };
 }
 
@@ -344,12 +464,15 @@ function finishQuestion(code) {
     leaderboard: publicPlayers(room),
   };
 
-  io.to(room.hostSocketId).emit("results", { result: room.result, me: null });
+  room.giftLog = [];
+  for (const p of room.players.values()) p.gift = { claimed: false, result: null };
+
+  io.to(room.hostSocketId).emit("results", { result: room.result, me: null, giftStats: giftStats(room) });
   for (const p of room.players.values()) {
     if (!p.connected) continue;
     io.to(p.socketId).emit("results", {
       result: room.result,
-      me: { last: p.last, rank: rankOf(room, p), score: p.score },
+      me: { last: p.last, rank: rankOf(room, p), score: p.score, streak: p.streak || 0, gift: { claimed: false, result: null } },
     });
   }
   sendLobby(room);
@@ -379,7 +502,9 @@ function startNext(room) {
   for (const p of room.players.values()) {
     p.answer = null;
     p.last = null;
+    p.gift = null; // an unopened gift box expires when the next question starts
   }
+  room.giftLog = [];
   clearTimers(room);
   room.timer = setTimeout(() => finishQuestion(room.code), room.duration * 1000 + ANSWER_GRACE_MS);
   io.to(room.code).emit("question", questionPayload(room));
@@ -466,6 +591,7 @@ io.on("connection", (socket) => {
       name,
       score: 0,
       streak: 0,
+      gift: null,
       connected: true,
       answer: null,
       last: null,
@@ -545,6 +671,49 @@ io.on("connection", (socket) => {
     });
     sendLobby(room);
     maybeFinishEarly(room);
+  });
+
+  on(socket, "claimGift", (_p, reply) => {
+    const ctx = ctxOf(socket, "player");
+    if (!ctx.ok) return reply(ctx);
+    const { room, player } = ctx;
+    if (room.state !== "results") return reply({ ok: false, error: "The gift box only opens between questions." });
+    if (!player.gift) return reply({ ok: false, error: "There is no gift for you this round." });
+    if (player.gift.claimed) return reply({ ok: true, gift: publicGift(player.gift.result), score: player.score, rank: rankOf(room, player) });
+
+    const result = rollGift(room, player);
+    player.gift = { claimed: true, result };
+
+    const entry = { name: player.name, text: result.news };
+    room.giftLog = [entry, ...(room.giftLog || [])].slice(0, 8);
+    io.to(room.code).emit("giftNews", entry);
+    for (const v of result.victims) {
+      if (v.socketId) io.to(v.socketId).emit("stolen", { by: player.name, amount: v.amount });
+    }
+    if (room.hostSocketId) io.to(room.hostSocketId).emit("giftProgress", giftStats(room));
+    sendLobby(room);
+    reply({ ok: true, gift: publicGift(result), score: player.score, rank: rankOf(room, player) });
+  });
+
+  on(socket, "react", (p, reply) => {
+    const ctx = ctxOf(socket);
+    if (!ctx.ok) return reply(ctx);
+    if (limited(socket, "react", 1, 500)) return reply({ ok: false, error: "Slow down a little." });
+    const emoji = String(p.emoji || "");
+    if (!EMOJIS.includes(emoji)) return reply({ ok: false, error: "Unknown emoji." });
+    const room = ctx.room;
+    let name = "";
+    if (socket.data.role === "player") {
+      const pl = room.players.get(socket.data.clientId);
+      if (!pl || pl.socketId !== socket.id) return reply({ ok: false });
+      name = pl.name;
+    } else if (socket.data.role === "host") {
+      name = room.hostName;
+    } else {
+      return reply({ ok: false });
+    }
+    io.to(room.code).emit("reaction", { name, emoji });
+    reply({ ok: true });
   });
 
   on(socket, "endQuestion", (_p, reply) => {

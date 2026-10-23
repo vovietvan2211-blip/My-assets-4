@@ -6,7 +6,7 @@
       "Giant glass domes",
       "Huge steel shields",
       "Deep rock tunnels",
-      "Thick walls of ice"
+      "Thick frozen walls"
     ],
     "correct": 0,
     "explain": "Giant glass domes cover the city and protect it from Mars's harsh environment."
@@ -36,6 +36,42 @@
     "explain": "The Spaceport Zone has the landing pads and control towers that link Mars and Earth."
   },
   {
+    "category": "ZONES",
+    "q": "AI research centers and advanced laboratories are in which zone?",
+    "options": [
+      "Technology Zone",
+      "Residential Zone",
+      "Spaceport Zone",
+      "Entertainment Zone"
+    ],
+    "correct": 0,
+    "explain": "Intelligent buildings, AI research centers and advanced labs make up the Technology Zone."
+  },
+  {
+    "category": "ZONES",
+    "q": "What would you find in the Entertainment Zone?",
+    "options": [
+      "VR cinemas and malls",
+      "Smart labs and towers",
+      "Landing pads and docks",
+      "Lakes, forests and farms"
+    ],
+    "correct": 0,
+    "explain": "The Entertainment Zone has giant shopping malls, VR cinemas, high-tech amusement parks and automated restaurants."
+  },
+  {
+    "category": "ZONES",
+    "q": "Which of these belong in the Green Zone?",
+    "options": [
+      "Artificial forests and lakes",
+      "Pads for landing spacecraft",
+      "Robots in smart apartments",
+      "Shopping malls and cinemas"
+    ],
+    "correct": 0,
+    "explain": "The Green Zone has artificial forests, lakes, waterfalls and farms that grow fresh food."
+  },
+  {
     "category": "POPULATION",
     "q": "About how many people live in Nova City?",
     "options": [
@@ -52,12 +88,24 @@
     "q": "Where does the city get its clean power?",
     "options": [
       "Solar panels and batteries",
-      "Coal plants and gas pipes",
+      "Coal plants and pipelines",
       "Diesel generators and fuel",
-      "Wood fires and old engines"
+      "Wood stoves and engines"
     ],
     "correct": 0,
     "explain": "Solar panels and advanced batteries give the city clean, steady electricity."
+  },
+  {
+    "category": "CITY SYSTEMS",
+    "q": "How does each dome keep its air fresh and comfortable?",
+    "options": [
+      "Its own oxygen and filters",
+      "Weekly oxygen from Earth ships",
+      "One shared tank for everyone",
+      "Open vents and Martian plants"
+    ],
+    "correct": 0,
+    "explain": "Every dome has its own oxygen supply, air purification and temperature control."
   },
   {
     "category": "TRANSPORT",
@@ -70,6 +118,18 @@
     ],
     "correct": 0,
     "explain": "High-speed magnetic trains and transport tunnels link the zones."
+  },
+  {
+    "category": "FOOD",
+    "q": "How does fresh food reach people in Nova City?",
+    "options": [
+      "Robot delivery",
+      "Earth shipments",
+      "Street markets",
+      "Ration coupons"
+    ],
+    "correct": 0,
+    "explain": "Food grows in indoor farms and vertical gardens, and robots deliver it."
   },
   {
     "category": "SMART HOMES",
@@ -89,7 +149,7 @@
     "options": [
       "To save space and land",
       "To block the dust storms",
-      "To store all of the air",
+      "To store all the air",
       "To hide the power lines"
     ],
     "correct": 0,
