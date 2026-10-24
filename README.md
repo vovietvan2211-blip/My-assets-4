@@ -1,4 +1,4 @@
-# Nova City Quiz — Multiplayer Web App (v5)
+# Nova City Quiz — Multiplayer Web App (v6)
 
 A 15-question real-time quiz based on the **Nova City poster** (Mars mega-city, zones, city systems, travel, housing and AI). Built with Node.js, Express, Socket.IO, HTML, CSS and browser JavaScript.
 
@@ -69,6 +69,11 @@ Players can tap an answer or press **A–D** (or **1–4**) on a keyboard.
 - **15 questions** (5 new: Technology Zone, Entertainment Zone, Green Zone, dome air, food). All answers in a question have the same word count and almost the same length.
 - **Gift box**: after every question each player gets one mystery box and taps it to open. Possible gifts: **+300 / +600 points**, **×2 or ×3 of your current score** (at least +300), or **steal 30% from up to 5 random players**. Victims get a notice, the host sees how many boxes were opened, and a gift log shows what everyone got. An unopened box expires when the next question starts. Odds and amounts are in the `GIFT` object at the top of `server.js`.
 - **Streak counter**: players see their current streak (and the next bonus) above the buffs, and a 🔥 number sits next to every name on the leaderboards.
-- **Emoji reactions**: players tap the 😊 button to throw an emoji. It floats up on every screen (host included) with the sender's name. One emoji per 0.5 s per player. The list is `EMOJIS` in `server.js`.
+- **Cat reactions** (replaced the emoji, see Version 6).
 - **Room code and QR are host-only.** Players never see them.
 - The "HOW IT WORKS" panel in the lobby is bigger and highlighted, and now explains streaks, gifts and emojis.
+
+## Version 6 changes
+- **Cat GIF reactions replace the emoji.** Players tap the 🐱 button and pick a cat. It floats up **only on the host's screen** with the sender's name. Other players never see it, they only get a small "Sent to the host!" message.
+- **Limits so the host screen never lags:** one reaction per player every 3 seconds, at most 12 per room every 3 seconds, and at most 8 on the host screen at the same time (extra ones are dropped). Players' phones only download the GIF thumbnails the first time they open the tray.
+- **Your own GIFs:** the list is in `reactions.json` (max 12). Put the GIF files in `public/gifs/` using the same names (`popcat.gif`, `nyan.gif`, ...). A reaction without a file shows its fallback emoji, so nothing breaks. Keep each GIF small (under ~500 KB). Direct https links also work in the `gif` field, but links on other websites can break, so local files are safer.

@@ -1,6 +1,6 @@
 {
   "name": "nova-city-quiz",
-  "version": "5.0.0",
+  "version": "6.0.0",
   "private": true,
   "description": "Realtime multiplayer speed-quiz inspired by the Nova City poster",
   "main": "server.js",

@@ -1,0 +1,10 @@
+[
+  { "id": "popcat",   "label": "Pop Cat",      "gif": "/gifs/popcat.gif",   "fallback": "😺" },
+  { "id": "nyan",     "label": "Nyan Cat",     "gif": "/gifs/nyan.gif",     "fallback": "🌈" },
+  { "id": "keyboard", "label": "Keyboard Cat", "gif": "/gifs/keyboard.gif", "fallback": "🎹" },
+  { "id": "grumpy",   "label": "Grumpy Cat",   "gif": "/gifs/grumpy.gif",   "fallback": "😾" },
+  { "id": "maxwell",  "label": "Maxwell",      "gif": "/gifs/maxwell.gif",  "fallback": "😹" },
+  { "id": "banana",   "label": "Banana Cat",   "gif": "/gifs/banana.gif",   "fallback": "🍌" },
+  { "id": "crying",   "label": "Crying Cat",   "gif": "/gifs/crying.gif",   "fallback": "😿" },
+  { "id": "huh",      "label": "Huh Cat",      "gif": "/gifs/huh.gif",      "fallback": "🙀" }
+]

@@ -4,6 +4,7 @@ const express = require("express");
 const http = require("http");
 const path = require("path");
 const crypto = require("crypto");
+const fs = require("fs");
 const os = require("os");
 const { Server } = require("socket.io");
 const QUESTIONS = require("./questions.json");
@@ -54,8 +55,34 @@ const GIFT = {
   ],
 };
 
-// Emoji reactions players can throw on everyone's screen.
-const EMOJIS = ["👏", "😂", "🔥", "😮", "❤️", "🎉", "😭", "💪"];
+// Cat reactions. Players send one, ONLY the host's screen shows it.
+// Edit reactions.json and drop the GIF files into public/gifs/.
+const REACTION_COOLDOWN_MS = 3000; // one reaction per player every 3 seconds
+const REACTION_ROOM_MAX = 12; // at most this many reactions per room every 3 seconds
+const REACTIONS = (() => {
+  let raw = [];
+  try {
+    raw = JSON.parse(fs.readFileSync(path.join(__dirname, "reactions.json"), "utf8"));
+  } catch (e) {
+    console.warn("reactions.json not found or invalid, using a built-in cat list.");
+    raw = [{ id: "cat", label: "Cat", fallback: "😺" }];
+  }
+  const pub = path.resolve(__dirname, "public");
+  return (Array.isArray(raw) ? raw : [])
+    .slice(0, 12)
+    .filter((r) => r && /^[a-z0-9_-]{1,24}$/.test(String(r.id)))
+    .map((r) => {
+      let gif = typeof r.gif === "string" ? r.gif : "";
+      if (gif.startsWith("/")) {
+        const file = path.resolve(pub, "." + gif);
+        if (!file.startsWith(pub + path.sep) || !fs.existsSync(file)) gif = "";
+        else if (fs.statSync(file).size > 1_500_000) console.warn(`[reactions] ${gif} is over 1.5 MB, it may lag the host screen.`);
+      } else if (!/^https:\/\//.test(gif)) {
+        gif = "";
+      }
+      return { id: String(r.id), label: String(r.label || r.id).slice(0, 30), gif, fallback: String(r.fallback || "🐱").slice(0, 4) };
+    });
+})();
 
 QUESTIONS.forEach((q, i) => {
   const ok =
@@ -219,7 +246,7 @@ function snapshot(room, role, clientId) {
     total: QUESTIONS.length,
     questionIndex: room.questionIndex,
     scoring: SCORING,
-    emojis: EMOJIS,
+    reactions: REACTIONS,
     giftLog: room.state === "results" ? room.giftLog || [] : [],
     giftStats: room.state === "results" ? giftStats(room) : null,
     players: publicPlayers(room),
@@ -696,23 +723,23 @@ io.on("connection", (socket) => {
   });
 
   on(socket, "react", (p, reply) => {
-    const ctx = ctxOf(socket);
+    const ctx = ctxOf(socket, "player");
     if (!ctx.ok) return reply(ctx);
-    if (limited(socket, "react", 1, 500)) return reply({ ok: false, error: "Slow down a little." });
-    const emoji = String(p.emoji || "");
-    if (!EMOJIS.includes(emoji)) return reply({ ok: false, error: "Unknown emoji." });
-    const room = ctx.room;
-    let name = "";
-    if (socket.data.role === "player") {
-      const pl = room.players.get(socket.data.clientId);
-      if (!pl || pl.socketId !== socket.id) return reply({ ok: false });
-      name = pl.name;
-    } else if (socket.data.role === "host") {
-      name = room.hostName;
-    } else {
-      return reply({ ok: false });
+    const { room, player } = ctx;
+    if (limited(socket, "react", 1, REACTION_COOLDOWN_MS)) {
+      return reply({ ok: false, error: "Wait a few seconds before sending another one." });
     }
-    io.to(room.code).emit("reaction", { name, emoji });
+    const id = String(p.id || "");
+    if (!REACTIONS.some((r) => r.id === id)) return reply({ ok: false, error: "Unknown reaction." });
+
+    // Room-wide cap so a big class can't flood the host's screen.
+    const t = now();
+    const rb = room.reactBucket;
+    if (!rb || t - rb.start > REACTION_COOLDOWN_MS) room.reactBucket = { start: t, n: 1 };
+    else if (++rb.n > REACTION_ROOM_MAX) return reply({ ok: false, error: "The host screen is busy, try again in a moment." });
+
+    // Only the host gets it. Other players never see reactions.
+    if (room.hostConnected && room.hostSocketId) io.to(room.hostSocketId).emit("reaction", { name: player.name, id });
     reply({ ok: true });
   });
 
