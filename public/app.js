@@ -66,7 +66,8 @@
   let audioCtx = null;
   let correctStreak = 0;
   let wrongStreak = 0;
-  let emojiList = [];
+  let reactionList = [];
+  let trayLoaded = false;
   let myStreak = 0;
   let giftBusy = false;
   let reactCool = false;
@@ -149,30 +150,66 @@
   }
 
   function renderDock() {
-    $("reactTray").innerHTML = emojiList.map((e) => `<button type="button" data-emoji="${e}">${e}</button>`).join("");
+    trayLoaded = false;
+    $("reactTray").innerHTML = reactionList
+      .map((r) => {
+        const face = r.gif ? `<img data-src="${esc(r.gif)}" alt="" width="44" height="44">` : "";
+        return `<button type="button" data-react="${esc(r.id)}" title="${esc(r.label)}"><span class="rt-fallback">${esc(r.fallback)}</span>${face}</button>`;
+      })
+      .join("");
+  }
+
+  // Thumbnails are only downloaded the first time the tray is opened, so players' phones stay light.
+  function loadTray() {
+    if (trayLoaded) return;
+    trayLoaded = true;
+    $("reactTray").querySelectorAll("img[data-src]").forEach((img) => {
+      img.onload = () => img.parentElement.classList.add("has-gif");
+      img.onerror = () => img.remove();
+      img.src = img.dataset.src;
+    });
   }
 
   function syncDock() {
     const home = $("home") && $("home").classList.contains("active");
-    const show = role === "player" && !!roomCode && !home && emojiList.length > 0;
+    const show = role === "player" && !!roomCode && !home && reactionList.length > 0;
     $("reactDock").classList.toggle("hidden", !show);
     if (!show) $("reactTray").classList.add("hidden");
   }
 
-  function spawnReaction(name, emoji) {
+  function spawnReaction(name, id) {
+    if (role !== "host") return; // reactions only show on the host's screen
+    const r = reactionList.find((x) => x.id === id);
+    if (!r) return;
     const layer = $("reactLayer");
-    while (layer.childElementCount > 40) layer.firstChild.remove();
+    if (layer.childElementCount >= 8) return; // too many on screen: drop extras to avoid lag
     const el = document.createElement("div");
     el.className = "react-bubble";
     el.style.left = `${8 + Math.random() * 78}%`;
     el.style.setProperty("--dx", `${Math.round(Math.random() * 80 - 40)}px`);
-    const e = document.createElement("span");
-    e.className = "rb-emoji";
-    e.textContent = emoji;
+    const showFallback = () => {
+      const f = document.createElement("span");
+      f.className = "rb-emoji";
+      f.textContent = r.fallback;
+      el.prepend(f);
+    };
+    if (r.gif) {
+      const img = new Image();
+      img.className = "rb-gif";
+      img.alt = r.label;
+      img.onerror = () => {
+        img.remove();
+        showFallback();
+      };
+      img.src = r.gif;
+      el.append(img);
+    } else {
+      showFallback();
+    }
     const n = document.createElement("span");
     n.className = "rb-name";
     n.textContent = name;
-    el.append(e, n);
+    el.append(n);
     layer.appendChild(el);
     el.addEventListener("animationend", () => el.remove());
     if (reduceMotion) setTimeout(() => el.remove(), 1800);
@@ -1055,8 +1092,9 @@
     $("lobbyCode").textContent = s.code;
     renderQr();
     renderPlayers(s.players || []);
-    emojiList = s.emojis || emojiList;
+    reactionList = s.reactions || reactionList;
     renderDock();
+    if (s.role === "host") reactionList.forEach((r) => { if (r.gif) new Image().src = r.gif; }); // preload for smooth playback
 
     if (s.state === "question" && s.question) showQuestion(s.question, s.me);
     else if (s.state === "results" && s.result) {
@@ -1173,14 +1211,28 @@
 
   $("backHome").onclick = leaveRoom;
   $("giftBtn").onclick = openGift;
-  $("reactToggle").onclick = () => $("reactTray").classList.toggle("hidden");
+  $("reactToggle").onclick = () => {
+    $("reactTray").classList.toggle("hidden");
+    loadTray();
+  };
   $("reactTray").addEventListener("click", (e) => {
-    const b = e.target.closest("button[data-emoji]");
+    const b = e.target.closest("button[data-react]");
     if (!b || reactCool) return;
     reactCool = true;
-    setTimeout(() => (reactCool = false), 600);
-    emitAck("react", { emoji: b.dataset.emoji }).then((r) => {
-      if (r && !r.ok && r.error) toast(r.error);
+    $("reactTray").classList.add("cool");
+    const release = () => {
+      reactCool = false;
+      $("reactTray").classList.remove("cool");
+    };
+    const timer = setTimeout(release, 3000);
+    emitAck("react", { id: b.dataset.react }).then((r) => {
+      if (r && r.ok) {
+        toast("Sent to the host!");
+      } else {
+        clearTimeout(timer);
+        toast((r && r.error) || "Could not send it.");
+        setTimeout(release, 1200);
+      }
     });
   });
   $("skipFinal").onclick = () => {
@@ -1277,8 +1329,8 @@
     sfx("wrong");
   });
 
-  socket.on("reaction", ({ name, emoji }) => {
-    if (roomCode) spawnReaction(name, emoji);
+  socket.on("reaction", ({ name, id }) => {
+    if (roomCode) spawnReaction(name, id);
   });
 
   socket.on("gameOver", ({ leaderboard }) => {

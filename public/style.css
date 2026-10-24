@@ -560,3 +560,11 @@ button:disabled{cursor:default}
   .gift-ico{font-size:42px}
 }
 @media(prefers-reduced-motion:reduce){.gift-btn,.gift-ico,.streak-bar.hot .streak-fire,.react-bubble{animation:none}.react-bubble{opacity:1}}
+
+/* cat GIF reactions (shown on the host screen only) */
+.react-tray button{position:relative;overflow:hidden;padding:0}
+.react-tray button img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:12px;opacity:0;transition:opacity .2s}
+.react-tray button.has-gif img{opacity:1}
+.react-tray button.has-gif .rt-fallback{opacity:0}
+.react-tray.cool{opacity:.4;pointer-events:none}
+.rb-gif{width:clamp(96px,12vw,170px);height:auto;border-radius:14px;filter:drop-shadow(0 6px 14px #000b)}
