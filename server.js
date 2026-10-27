@@ -9,6 +9,18 @@ const os = require("os");
 const { Server } = require("socket.io");
 const QUESTIONS = require("./questions.json");
 
+// Node.js October 2026 security releases: 22.23.4, 24.22.1, 26.12.1 (or newer in the same line).
+(function warnIfNodeUnpatched() {
+  const [M, m, p] = process.versions.node.split(".").map(Number);
+  const fix = { 22: [23, 4], 24: [22, 1], 26: [12, 1] }[M];
+  const ok = fix ? m > fix[0] || (m === fix[0] && p >= fix[1]) : M > 26;
+  if (!ok) {
+    console.warn(
+      `[security] Node.js ${process.version} is missing the October 2026 security fixes. Use 22.23.4, 24.22.1, 26.12.1 or newer.`
+    );
+  }
+})();
+
 /* ------------------------------------------------------------------ */
 /* Config - tweak the game here                                        */
 /* ------------------------------------------------------------------ */

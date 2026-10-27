@@ -77,3 +77,8 @@ Players can tap an answer or press **A–D** (or **1–4**) on a keyboard.
 - **Cat GIF reactions replace the emoji.** Players tap the 🐱 button and pick a cat. It floats up **only on the host's screen** with the sender's name. Other players never see it, they only get a small "Sent to the host!" message.
 - **Limits so the host screen never lags:** one reaction per player every 3 seconds, at most 12 per room every 3 seconds, and at most 8 on the host screen at the same time (extra ones are dropped). Players' phones only download the GIF thumbnails the first time they open the tray.
 - **Your own GIFs:** the list is in `reactions.json` (max 12). Put the GIF files in `public/gifs/` using the same names (`popcat.gif`, `nyan.gif`, ...). A reaction without a file shows its fallback emoji, so nothing breaks. Keep each GIF small (under ~500 KB). Direct https links also work in the `gif` field, but links on other websites can break, so local files are safer.
+
+## Node.js security update (October 2026)
+- This project is pinned to Node.js **22.23.4** (`.node-version` and `engines` in `package.json`), the patched release. On Render you can also set the environment variable `NODE_VERSION` = `22.23.4`.
+- After changing it, use **Manual Deploy > Clear build cache & deploy** so the service is rebuilt. The deploy log should say it is using Node.js 22.23.4.
+- The server prints a `[security]` warning at startup if it runs on an unpatched Node.js.
