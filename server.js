@@ -55,17 +55,30 @@ const SCORING = {
 //   mult  : multiplies the player's CURRENT score (at least minGain points)
 //   steal : takes stealPct of the score of up to stealTargets random other players
 const GIFT = {
-  minGain: 300,
-  stealPct: 0.3,
-  stealTargets: 5,
-  table: [
-    { kind: "bonus", amount: 300, weight: 24 },
-    { kind: "bonus", amount: 600, weight: 14 },
-    { kind: "mult", mult: 2, weight: 16 },
-    { kind: "mult", mult: 3, weight: 6 },
-    { kind: "steal", weight: 30 },
-  ],
+  minGain: 300, // smallest gain of a x2 / x3 gift for the leader
+  minGainBehind: 3000, // smallest gain of a x2 / x3 gift for the last player
+  maxGain: 1500, // biggest gain of a x2 / x3 gift for the leader (so a x3 can't make the leader run away)
+  maxGainBehind: 8000, // biggest gain of a x2 / x3 gift for the last player
+  stealPct: 0.3, // steal 30% of each victim's score
+  stealTargetsLead: 2, // the leader can steal from up to 2 players
+  stealTargetsBehind: 5, // the last player can steal from up to 5 players
+  comebackFrom: 0.5, // players in the bottom half get the "comeback" treatment
 };
+
+// How good the gift can be depends on the player's position when the question ends.
+// u = 0 -> leading, u = 1 -> last place. The further behind, the better the odds and the bigger the gains.
+function giftTable(u) {
+  const pos = (x) => Math.max(0, x);
+  return [
+    { kind: "bonus", amount: 300, weight: 45 * (1 - u) + 2 },
+    { kind: "bonus", amount: 600, weight: 20 * (1 - u) + 6 },
+    { kind: "bonus", amount: 1000, weight: 3 + 17 * u },
+    { kind: "bonus", amount: Math.round((2000 + 2500 * u * u) / 100) * 100, weight: pos((u - 0.4) * 50), jackpot: true }, // bottom 60% only, up to +4,500 for last place
+    { kind: "mult", mult: 2, weight: 8 + 10 * u },
+    { kind: "mult", mult: 3, weight: pos(12 * (u - 0.2)) }, // not for the top 20%
+    { kind: "steal", weight: 14 + 14 * u },
+  ];
+}
 
 // Cat reactions. Players send one, ONLY the host's screen shows it.
 // Edit reactions.json and drop the GIF files into public/gifs/.
@@ -260,7 +273,7 @@ function snapshot(room, role, clientId) {
     scoring: SCORING,
     reactions: REACTIONS,
     giftLog: room.state === "results" ? room.giftLog || [] : [],
-    giftStats: room.state === "results" ? giftStats(room) : null,
+    giftStats: null, // the host does not see gift stats
     players: publicPlayers(room),
     question: room.state === "question" ? questionPayload(room) : null,
     result: room.state === "results" ? room.result : null,
@@ -287,6 +300,7 @@ function publicGift(g) {
     title: g.title,
     detail: g.detail,
     delta: g.delta,
+    comeback: !!g.comeback,
     victims: (g.victims || []).map((v) => ({ name: v.name, amount: v.amount })),
   };
 }
@@ -306,11 +320,13 @@ function fmtNum(n) {
   return Number(n).toLocaleString("en-US");
 }
 
-function rollGift(room, player) {
-  const total = GIFT.table.reduce((a, g) => a + g.weight, 0);
+function rollGift(room, player, u = 0) {
+  const table = giftTable(u);
+  const comeback = u >= GIFT.comebackFrom;
+  const total = table.reduce((a, g) => a + g.weight, 0);
   let r = Math.random() * total;
-  let pick = GIFT.table[0];
-  for (const g of GIFT.table) {
+  let pick = table[1];
+  for (const g of table) {
     if ((r -= g.weight) < 0) {
       pick = g;
       break;
@@ -318,20 +334,39 @@ function rollGift(room, player) {
   }
 
   if (pick.kind === "mult") {
-    const gain = Math.max(GIFT.minGain, Math.round((player.score * (pick.mult - 1)) / 10) * 10);
+    const floor = Math.round((GIFT.minGain + (GIFT.minGainBehind - GIFT.minGain) * u) / 100) * 100;
+    const ceil = Math.round((GIFT.maxGain + (GIFT.maxGainBehind - GIFT.maxGain) * u) / 100) * 100;
+    const natural = Math.round((player.score * (pick.mult - 1)) / 10) * 10;
+    const gain = Math.min(ceil, Math.max(floor, natural));
+    const note =
+      gain > natural
+        ? `Comeback boost! You get at least +${fmtNum(floor)}.`
+        : gain < natural
+        ? `Big score! This gift is capped at +${fmtNum(ceil)}.`
+        : pick.mult === 2
+        ? "Your score just doubled!"
+        : "Your score just tripled!";
     player.score += gain;
     return {
       kind: "mult",
       title: `×${pick.mult} YOUR SCORE`,
-      detail: pick.mult === 2 ? "Your score just doubled!" : "Your score just tripled!",
+      detail: note,
       delta: gain,
       victims: [],
+      comeback,
       news: `opened ×${pick.mult} and gained +${fmtNum(gain)}`,
     };
   }
 
   if (pick.kind === "steal") {
-    const others = shuffle([...room.players.values()].filter((v) => v !== player && v.score > 0)).slice(0, GIFT.stealTargets);
+    let pool = [...room.players.values()].filter((v) => v !== player && v.score > 0);
+    if (comeback) {
+      // players who are behind steal from people who are ahead of them, when there are any
+      const richer = pool.filter((v) => v.score > player.score);
+      if (richer.length) pool = richer;
+    }
+    const targets = Math.round(GIFT.stealTargetsLead + (GIFT.stealTargetsBehind - GIFT.stealTargetsLead) * u);
+    const others = shuffle(pool).slice(0, targets);
     const victims = [];
     let gain = 0;
     for (const v of others) {
@@ -349,29 +384,32 @@ function rollGift(room, player) {
         detail: `You took 30% of the points from ${victims.length} player${victims.length > 1 ? "s" : ""}!`,
         delta: gain,
         victims,
+        comeback,
         news: `stole ${fmtNum(gain)} points from ${victims.length} player${victims.length > 1 ? "s" : ""}`,
       };
     }
     // nobody had points to steal
-    player.score += GIFT.table[0].amount;
+    player.score += 300;
     return {
       kind: "bonus",
-      title: `+${GIFT.table[0].amount} POINTS`,
+      title: "+300 POINTS",
       detail: "Nobody had points to steal, so here's a bonus instead.",
-      delta: GIFT.table[0].amount,
+      delta: 300,
       victims: [],
-      news: `opened a bonus box: +${GIFT.table[0].amount}`,
+      comeback,
+      news: "opened a bonus box: +300",
     };
   }
 
   player.score += pick.amount;
   return {
     kind: "bonus",
-    title: `+${fmtNum(pick.amount)} POINTS`,
-    detail: "A little extra for the next round.",
+    title: pick.jackpot ? `JACKPOT +${fmtNum(pick.amount)}` : `+${fmtNum(pick.amount)} POINTS`,
+    detail: pick.jackpot ? "Big comeback gift. Go get them!" : "A little extra for the next round.",
     delta: pick.amount,
     victims: [],
-    news: `opened a bonus box: +${fmtNum(pick.amount)}`,
+    comeback,
+    news: pick.jackpot ? `hit the JACKPOT: +${fmtNum(pick.amount)}` : `opened a bonus box: +${fmtNum(pick.amount)}`,
   };
 }
 
@@ -504,9 +542,13 @@ function finishQuestion(code) {
   };
 
   room.giftLog = [];
-  for (const p of room.players.values()) p.gift = { claimed: false, result: null };
+  const n = room.players.size;
+  for (const p of room.players.values()) {
+    const u = n <= 1 ? 0 : (rankOf(room, p) - 1) / (n - 1); // 0 = leading ... 1 = last
+    p.gift = { claimed: false, result: null, u };
+  }
 
-  io.to(room.hostSocketId).emit("results", { result: room.result, me: null, giftStats: giftStats(room) });
+  io.to(room.hostSocketId).emit("results", { result: room.result, me: null });
   for (const p of room.players.values()) {
     if (!p.connected) continue;
     io.to(p.socketId).emit("results", {
@@ -720,16 +762,16 @@ io.on("connection", (socket) => {
     if (!player.gift) return reply({ ok: false, error: "There is no gift for you this round." });
     if (player.gift.claimed) return reply({ ok: true, gift: publicGift(player.gift.result), score: player.score, rank: rankOf(room, player) });
 
-    const result = rollGift(room, player);
-    player.gift = { claimed: true, result };
+    const result = rollGift(room, player, player.gift.u || 0);
+    player.gift = { claimed: true, result, u: player.gift.u || 0 };
 
     const entry = { name: player.name, text: result.news };
     room.giftLog = [entry, ...(room.giftLog || [])].slice(0, 8);
-    io.to(room.code).emit("giftNews", entry);
+    // the gift log goes to players only, never to the host screen
+    for (const q of room.players.values()) if (q.connected) io.to(q.socketId).emit("giftNews", entry);
     for (const v of result.victims) {
       if (v.socketId) io.to(v.socketId).emit("stolen", { by: player.name, amount: v.amount });
     }
-    if (room.hostSocketId) io.to(room.hostSocketId).emit("giftProgress", giftStats(room));
     sendLobby(room);
     reply({ ok: true, gift: publicGift(result), score: player.score, rank: rankOf(room, player) });
   });
@@ -820,3 +862,5 @@ setInterval(() => {
 }, 10 * 60 * 1000).unref();
 
 server.listen(PORT, () => console.log(`Nova City Quiz running on port ${PORT}`));
+
+if (process.env.NOVA_TEST) module.exports = { giftTable, rollGift };

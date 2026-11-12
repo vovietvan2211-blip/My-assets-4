@@ -88,3 +88,14 @@ Players can tap an answer or press **A–D** (or **1–4**) on a keyboard.
 - After the show, the **Scoreboard** appears as white cards (gold / silver / bronze rank badges, your own row highlighted), plus the "You finished #N" line and the REPLAY / BACK TO START buttons. "Skip" jumps straight to the end.
 - To make the show faster or slower, change `FINAL_TIMING` in `public/app.js` (values in milliseconds).
 - The page loads the Montserrat font from Google Fonts for the finale, and falls back to Inter if it can't load.
+
+## Version 8 changes
+- **One look for the whole game.** The home page, lobby, question screen and results now use the same purple, chunky style as the finale: floating shapes, white cards, bold Montserrat text.
+  - Answers are big colored blocks with shapes (red ▲, blue ◆, yellow ●, green ■), the question sits in a white card, the timer is a round white dial.
+  - Leaderboards are white cards with gold / silver / bronze badges. The result card turns green (right) or red (wrong) with a big score.
+  - On phones the four answers stay in a 2x2 grid and fit on the screen with the buffs.
+- **Gift box is for players only.** The host screen no longer shows the gift box, the gift log or "gifts opened" progress. The server does not send gift events to the host.
+- **Better gifts for players who are behind.** Everyone still gets one box per question, but the further down the leaderboard, the better the odds and the bigger the gains (see `giftTable` and `GIFT` at the top of `server.js`):
+  - The leader mostly gets small bonuses (+300 / +600), a ×2 that is capped at +1,500, and can steal from at most 2 players.
+  - Players in the bottom half can win a **JACKPOT** (+2,000 up to +4,500 for last place), ×2 / ×3 gifts with a guaranteed minimum gain (up to +3,000 for last place), and steal 30% from up to 5 players who are **ahead** of them. Their gift is marked "COMEBACK GIFT".
+  - In a simulation (8 players), the average gift was about 800 points for the leader and about 4,000 for the last player.
