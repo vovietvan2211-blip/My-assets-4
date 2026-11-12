@@ -82,3 +82,9 @@ Players can tap an answer or press **A–D** (or **1–4**) on a keyboard.
 - This project is pinned to Node.js **22.23.4** (`.node-version` and `engines` in `package.json`), the patched release. On Render you can also set the environment variable `NODE_VERSION` = `22.23.4`.
 - After changing it, use **Manual Deploy > Clear build cache & deploy** so the service is rebuilt. The deploy log should say it is using Node.js 22.23.4.
 - The server prints a `[security]` warning at startup if it runs on an unpatched Node.js.
+
+## Version 7 changes
+- **Kahoot-style finale.** Purple background with floating shapes, big chunky "Podium" title, and colored blocks that bounce up one by one: 3rd place, then 2nd, then 1st. Each reveal has a drumroll, then the name and score pop above the block (the score counts up). The winner gets a crown, rotating light rays, fireworks and confetti.
+- After the show, the **Scoreboard** appears as white cards (gold / silver / bronze rank badges, your own row highlighted), plus the "You finished #N" line and the REPLAY / BACK TO START buttons. "Skip" jumps straight to the end.
+- To make the show faster or slower, change `FINAL_TIMING` in `public/app.js` (values in milliseconds).
+- The page loads the Montserrat font from Google Fonts for the finale, and falls back to Inter if it can't load.
