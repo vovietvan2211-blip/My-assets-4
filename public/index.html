@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#080b14">
+<meta name="theme-color" content="#46178f">
 <title>Nova City Quiz</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet">
@@ -11,6 +11,7 @@
 </head>
 <body>
 <div class="stars"></div><div class="orb orb-one"></div><div class="orb orb-two"></div>
+<div class="bg-shapes" aria-hidden="true"><i class="k1"></i><i class="k2"></i><i class="k3"></i><i class="k4"></i><i class="k5"></i><i class="k6"></i></div>
 
 <header class="topbar">
   <a class="brand" href="/"><span class="brand-icon">✦</span> NOVA<span class="brand-light">CITY</span></a>
@@ -93,7 +94,7 @@
       <div class="rule"><span class="rule-icon">02</span><div><b>Pick a buff</b><p>×2 and ×3 multiply your points, but a wrong answer costs 250 or 500. Pick nothing and it's a safe ×1.</p></div></div>
       <div class="rule"><span class="rule-icon">03</span><div><b>All-in</b><p>Right answer = ×5. Wrong answer = your score goes back to zero.</p></div></div>
       <div class="rule"><span class="rule-icon">04</span><div><b>Keep a streak</b><p>Each extra right answer in a row adds +100 bonus points (max +500). One wrong answer ends the streak. Your streak is always shown on your screen.</p></div></div>
-      <div class="rule"><span class="rule-icon">05</span><div><b>Open your gift</b><p>After every question you get a mystery box. Tap it: get ×2 or ×3 of your score, bonus points, or steal 30% from up to 5 players.</p></div></div>
+      <div class="rule"><span class="rule-icon">05</span><div><b>Open your gift</b><p>After every question you get a mystery box. Tap it: bonus points, ×2 or ×3 of your score, or steal 30% from other players. The lower you are on the leaderboard, the better your gift!</p></div></div>
       <div class="rule"><span class="rule-icon">06</span><div><b>Send a cat</b><p>Tap the 🐱 button to send a cat GIF to the host. Only the host sees it, and you can send one every 3 seconds.</p></div></div>
       <button id="startGame" class="btn primary full hidden">START GAME <span>→</span></button>
       <p id="lobbyHint" class="hint">The host starts each question and shows the results.</p>
@@ -180,14 +181,13 @@
       <div class="score-tip"><span>✦</span><p><b>Keep going</b>Every question can change the ranking.</p></div>
     </div>
   </div>
-  <p id="giftProgress" class="gift-progress hidden"></p>
   <div id="hostNextControls" class="host-next-controls hidden"><button id="nextQuestion" class="btn primary">NEXT QUESTION →</button></div>
   <div id="playerWait" class="player-wait hidden">Waiting for the host to launch the next question…</div>
 </section>
 
 <!-- FINAL -->
 <section id="final" class="screen">
-  <div class="kf-bg" aria-hidden="true"><i class="k1"></i><i class="k2"></i><i class="k3"></i><i class="k4"></i><i class="k5"></i><i class="k6"></i><div class="rays"></div></div>
+  <div class="kf-bg" aria-hidden="true"><div class="rays"></div></div>
   <div class="kf-head">
     <h1 id="finalTitle">Podium</h1>
     <p id="finalCaption" class="final-caption"></p>

@@ -217,6 +217,7 @@
   }
 
   function addFeed(entry) {
+    if (role !== "player") return; // the gift log is for players only, not the host screen
     const list = $("giftFeedList");
     const li = document.createElement("li");
     const b = document.createElement("b");
@@ -235,7 +236,8 @@
     const victims = (g.victims || []).length
       ? `<ul class="gr-victims">${g.victims.map((v) => `<li><span>${esc(v.name)}</span><em>${MINUS}${fmt(v.amount)}</em></li>`).join("")}</ul>`
       : "";
-    el.innerHTML = `<div class="gr-ico">${icon}</div><div><small>YOU GOT</small><b>${esc(g.title)}</b><p>${esc(
+    const ribbon = g.comeback ? '<span class="gift-ribbon">COMEBACK GIFT</span>' : "";
+    el.innerHTML = `<div class="gr-ico">${icon}</div><div>${ribbon}<small>YOU GOT</small><b>${esc(g.title)}</b><p>${esc(
       g.detail
     )}</p><strong class="gr-delta">+${fmt(g.delta)}</strong>${victims}</div>`;
     if (!instant) {
@@ -257,9 +259,6 @@
     } else {
       box.classList.add("hidden");
     }
-    const prog = $("giftProgress");
-    prog.classList.toggle("hidden", role !== "host" || !giftStats);
-    if (role === "host" && giftStats) prog.textContent = `🎁 ${giftStats.claimed} / ${giftStats.total} gifts opened`;
   }
 
   async function openGift() {
@@ -1312,13 +1311,6 @@
 
   socket.on("giftNews", (entry) => {
     if (roomCode && $("results").classList.contains("active")) addFeed(entry);
-  });
-
-  socket.on("giftProgress", (st) => {
-    if (role === "host" && st) {
-      $("giftProgress").classList.remove("hidden");
-      $("giftProgress").textContent = `🎁 ${st.claimed} / ${st.total} gifts opened`;
-    }
   });
 
   socket.on("stolen", ({ by, amount }) => {
