@@ -85,6 +85,7 @@
     SCREENS.forEach((s) => $(s).classList.toggle("active", s === name));
     window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
     syncDock();
+    document.body.classList.toggle("is-finale", name === "final");
   }
 
   function toast(message) {
@@ -791,17 +792,15 @@
   })();
 
   /* ---------------------------------------------------------------- */
-  /* Finale: the spotlight visits 3rd, then 2nd, then 1st place       */
+  /* Finale (Kahoot style): 3rd place block rises, then 2nd, then 1st */
   /* ---------------------------------------------------------------- */
-  // All times in ms. Make the numbers bigger to give each spotlight more time.
+  // All times in ms. Make the numbers bigger to slow the show down.
   const FINAL_TIMING = {
-    search: 1800,       // light moves to the spot and "looks" for 2nd / 3rd place
-    hold: 4200,         // how long a 2nd / 3rd place winner stays in the light
-    winnerSearch: 3400, // drumroll before the winner
-    winnerHold: 8000,   // fireworks time for the winner
+    search: 1500,       // drumroll before a 2nd / 3rd place block rises
+    hold: 3300,         // time spent on a 2nd / 3rd place before moving on
+    winnerSearch: 3200, // longer drumroll before the winner
+    winnerHold: 8000,   // celebration time for the winner (fireworks + confetti)
   };
-  const COL_OF = { 1: 1, 2: 0, 3: 2 };      // podium column of each place (2nd | 1st | 3rd)
-  const SPOT_X = [19.33, 50, 80.67];        // spotlight position (% of stage width) per column
   let finalTimers = [];
   let finalPlayers = [];
 
@@ -824,8 +823,11 @@
   }
 
   function countUp(el, to, ms) {
+    const id = String(performance.now());
+    el.dataset.cu = id;
     const t0 = performance.now();
     (function step(now) {
+      if (el.dataset.cu !== id) return; // cancelled (skip / replay)
       const f = Math.min(1, (now - t0) / ms);
       el.textContent = fmt(Math.round(to * (1 - Math.pow(1 - f, 3))));
       if (f < 1) requestAnimationFrame(step);
@@ -833,19 +835,23 @@
   }
 
   function revealPod(place, instant) {
-    const pod = $("podium").querySelector(`.place-${place}`);
+    const pod = $("podium").querySelector(`.kp-${place}`);
     if (!pod) return;
-    pod.classList.remove("past");
-    pod.classList.add("lit");
-    const sc = pod.querySelector(".pod-score");
+    pod.classList.add("show");
+    if (place === 1) $("final").classList.add("win");
+    const sc = pod.querySelector(".kp-score");
     const to = Number(sc.dataset.score) || 0;
-    if (instant) sc.textContent = fmt(to);
-    else countUp(sc, to, 1400);
+    if (instant) {
+      sc.dataset.cu = "";
+      sc.textContent = fmt(to);
+    } else {
+      later(600, () => countUp(sc, to, 1200));
+    }
   }
 
   function drumroll(ms) {
     let t = 0;
-    let gap = 260;
+    let gap = 240;
     while (t < ms - 150) {
       later(t, () => sfx("tick"));
       t += gap;
@@ -854,8 +860,6 @@
   }
 
   function finishFinal() {
-    $("stage").classList.add("lights-on");
-    $("spot").classList.remove("searching");
     $("restWrap").classList.remove("hidden");
     $("finalActions").classList.remove("hidden");
     $("skipFinal").parentElement.classList.add("hidden");
@@ -863,7 +867,7 @@
     if (role === "player") {
       const mine = ranked(finalPlayers).find((p) => p.name === myName);
       if (mine) {
-        you.textContent = `You finished #${mine.rank} with ${fmt(mine.score)} points.`;
+        you.textContent = `You finished #${mine.rank} with ${fmt(mine.score)} points`;
         you.classList.remove("hidden");
       }
     }
@@ -873,26 +877,23 @@
     stopTimer();
     clearFinal();
     finalPlayers = players || [];
-    const rows = ranked(finalPlayers);
-    const top = rows.slice(0, 3);
+    const top = ranked(finalPlayers).slice(0, 3);
     const stage = $("stage");
     renderLeaderboard(finalPlayers, "finalLeaderboard");
 
+    // columns: 2nd | 1st | 3rd
     $("podium").innerHTML = [2, 1, 3]
       .map((place) => {
         const p = top[place - 1];
-        if (!p) return '<div class="pod pod-empty"></div>';
-        return `<div class="pod place-${place}"><div class="pod-info">${
-          place === 1 ? '<div class="pod-crown">👑</div>' : ""
-        }<div class="pod-avatar">${esc((p.name || "?").slice(0, 1).toUpperCase())}</div><b class="pod-name">${esc(
-          p.name
-        )}</b><span class="pod-score" data-score="${p.score}">0</span></div><div class="pod-step"><strong>${place}</strong></div></div>`;
+        if (!p) return '<div class="kp kp-empty"></div>';
+        return `<div class="kp kp-${place}"><div class="kp-tag">${
+          place === 1 ? '<div class="kp-crown">👑</div>' : ""
+        }<b class="kp-name">${esc(p.name)}</b><span class="kp-score" data-score="${p.score}">0</span></div><div class="kp-block"><span class="kp-num">${place}</span></div></div>`;
       })
       .join("");
 
     stage.className = "stage";
-    $("spot").classList.remove("searching");
-    stage.style.setProperty("--spot-x", "50%");
+    $("final").classList.remove("win", "instant");
     $("restWrap").classList.add("hidden");
     $("finalActions").classList.add("hidden");
     $("finalYou").classList.add("hidden");
@@ -906,14 +907,15 @@
       return;
     }
     if (reduceMotion) {
+      stage.classList.add("instant");
+      $("final").classList.add("instant");
       order.forEach((pl) => revealPod(pl, true));
-      say(`Congratulations, ${top[0].name}!`);
+      say(`${top[0].name} wins!`);
       finishFinal();
       return;
     }
 
-    stage.classList.add("dark");
-    say("Get ready…");
+    say("Drumroll…");
     const T = FINAL_TIMING;
     let t = 1000;
     order.forEach((place) => {
@@ -923,17 +925,12 @@
       const hold = win ? T.winnerHold : T.hold;
       later(t, () => {
         say(win ? "And the winner is…" : place === 3 ? "In third place…" : "In second place…");
-        $("podium").querySelectorAll(".pod.lit").forEach((el) => el.classList.add("past"));
-        stage.style.setProperty("--spot-x", `${SPOT_X[COL_OF[place]]}%`);
-        $("spot").classList.add("searching");
-        sfx("sweep");
-        if (win) drumroll(search);
+        drumroll(search);
       });
       later(t + search, () => {
-        $("spot").classList.remove("searching");
         revealPod(place, false);
         if (win) {
-          say(`Congratulations, ${p.name}!`);
+          say(`${p.name} wins!`);
           sfx("fanfare");
           fx.start(hold - 500);
         } else {
@@ -1237,10 +1234,11 @@
   });
   $("skipFinal").onclick = () => {
     clearFinal();
-    $("stage").classList.add("dark");
+    $("stage").classList.add("instant");
+    $("final").classList.add("instant");
     [1, 2, 3].forEach((pl) => revealPod(pl, true));
     const first = ranked(finalPlayers)[0];
-    say(first ? `Congratulations, ${first.name}!` : "Final results");
+    say(first ? `${first.name} wins!` : "Final results");
     finishFinal();
   };
   $("replayFinal").onclick = () => showFinal(finalPlayers);

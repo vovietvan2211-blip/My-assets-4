@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#080b14">
 <title>Nova City Quiz</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
@@ -187,18 +187,17 @@
 
 <!-- FINAL -->
 <section id="final" class="screen">
-  <div class="final-hero">
-    <div class="eyebrow">FINAL RESULTS</div>
-    <h1 id="finalTitle">THE <span>PODIUM</span></h1>
+  <div class="kf-bg" aria-hidden="true"><i class="k1"></i><i class="k2"></i><i class="k3"></i><i class="k4"></i><i class="k5"></i><i class="k6"></i><div class="rays"></div></div>
+  <div class="kf-head">
+    <h1 id="finalTitle">Podium</h1>
     <p id="finalCaption" class="final-caption"></p>
-    <p id="finalYou" class="final-you hidden"></p>
   </div>
   <div id="stage" class="stage" aria-label="Top three players">
-    <div id="spot" class="spot"><div class="spot-beam"></div><div class="spot-pool"></div><div class="spot-lamp"></div></div>
     <div id="podium" class="podium"></div>
   </div>
+  <p id="finalYou" class="final-you hidden"></p>
   <div class="final-skip"><button id="skipFinal" class="text-btn">Skip ›</button></div>
-  <div id="restWrap" class="panel final-leaderboard hidden"><div class="panel-title">FINAL STANDINGS</div><div id="finalLeaderboard" class="leaderboard"></div></div>
+  <div id="restWrap" class="kf-board hidden"><div class="kf-board-title">Scoreboard</div><div id="finalLeaderboard" class="leaderboard"></div></div>
   <div id="finalActions" class="final-actions hidden">
     <button id="replayFinal" class="btn secondary">REPLAY</button>
     <button id="newGame" class="btn primary">BACK TO START</button>
