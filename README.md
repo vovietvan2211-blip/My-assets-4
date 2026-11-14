@@ -99,3 +99,9 @@ Players can tap an answer or press **A–D** (or **1–4**) on a keyboard.
   - The leader mostly gets small bonuses (+300 / +600), a ×2 that is capped at +1,500, and can steal from at most 2 players.
   - Players in the bottom half can win a **JACKPOT** (+2,000 up to +4,500 for last place), ×2 / ×3 gifts with a guaranteed minimum gain (up to +3,000 for last place), and steal 30% from up to 5 players who are **ahead** of them. Their gift is marked "COMEBACK GIFT".
   - In a simulation (8 players), the average gift was about 800 points for the leader and about 4,000 for the last player.
+
+## Version 9 changes
+- **Smart-city blue theme.** The purple look is replaced by deep navy blue with neon cyan accents, dark glass cards instead of white cards, a faint city grid and a skyline in the background. It is darker and less bright, and fits the "Nova City" topic better. The answer blocks keep their four colors, the winner keeps gold.
+- The finale uses the same blue look (cyan rays, blue / orange medal blocks, dark scoreboard rows).
+- Fixed: the REPLAY / BACK TO START buttons were not centered on the finale screen.
+- All colors of this theme are in the last block of `public/style.css` (search for `v9`). To change the main accent, change `--cyan` at the top of that block.
